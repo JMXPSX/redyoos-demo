@@ -312,6 +312,7 @@
     "image_banner_cmrmck": {
       "type": "image-banner",
       "settings": {
+        "image": "shopify://shop_images/Untitled_design_10_6c950db6-b44d-4246-b74d-5cb655c7b22c.png",
         "image_overlay_opacity": 0,
         "image_height": "adapt",
         "desktop_content_position": "middle-center",
