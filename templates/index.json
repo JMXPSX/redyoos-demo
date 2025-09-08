@@ -32,6 +32,7 @@
         "text_m8akKd"
       ],
       "settings": {
+        "image": "shopify://shop_images/Untitled_design_5.png",
         "image_overlay_opacity": 40,
         "image_height": "adapt",
         "desktop_content_position": "bottom-center",
@@ -50,6 +51,7 @@
         "row_TtYQDm": {
           "type": "row",
           "settings": {
+            "image": "shopify://shop_images/Untitled_design_6.png",
             "caption": "Jewelry recycling service",
             "heading": "WE ARE REDYOOS",
             "text": "<p>Jewelry Experts That Created the Solution for Circular Jewelry Recycling Management and Materials</p>",
@@ -159,6 +161,7 @@
         "slide_tJpLQD": {
           "type": "slide",
           "settings": {
+            "image": "shopify://shop_images/Untitled_design_8.png",
             "heading": "JEWELRY RECYCLING",
             "heading_size": "h2",
             "subheading": "Recycle preloved jewelry of all types - gold, silver, gemstones, costume pieces - and contribute to a sustainable future.",
@@ -301,6 +304,11 @@
         "padding_bottom": 24
       }
     },
+    "redyoos_mailkit_section_gitECE": {
+      "type": "redyoos-mailkit-section",
+      "name": "Mailkit Section",
+      "settings": {}
+    },
     "image_banner_cmrmck": {
       "type": "image-banner",
       "settings": {
@@ -315,11 +323,6 @@
         "stack_images_on_mobile": true,
         "show_text_below": true
       }
-    },
-    "redyoos_mailkit_section_gitECE": {
-      "type": "redyoos-mailkit-section",
-      "name": "Mailkit Section",
-      "settings": {}
     }
   },
   "order": [
