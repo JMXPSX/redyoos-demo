@@ -1,0 +1,687 @@
+{% schema %}
+{
+  "name": "Estimated Value",
+  "settings": [],
+  "blocks": [],
+  "presets": [
+    {
+      "name": "Estimated Value"
+    }
+  ]
+}
+{% endschema %}
+
+<section class="estimated-value-wrapper">
+  <div class="jewelry-list-container">
+    <h2 class="title">Jewelry List</h2>
+
+    <!-- Dynamic Jewelry item row -->
+    <div class="jewelry-row" id="jewelry-row">
+      <div class="item-images" id="item-images">
+        <!-- Dynamic image thumbnails will be inserted here -->
+        <div class="image-placeholder" id="image-1">
+          <div class="placeholder-icon">📷</div>
+        </div>
+        <div class="image-placeholder" id="image-2" style="display: none;">
+          <div class="placeholder-icon">📷</div>
+        </div>
+        <div class="image-placeholder" id="image-3" style="display: none;">
+          <div class="placeholder-icon">📷</div>
+        </div>
+      </div>
+      <div class="estimated-value-display" id="estimated-value-display">
+        <div class="estimated-value-amount">$0.00</div>
+        <div class="estimated-value-label">Estimated Value</div>
+      </div>
+      <button class="btn-analysis" id="view-analysis-btn">View Analysis</button>      
+    </div>
+
+    <!-- Total value section -->
+    <div class="total-value-box">
+      <p>Estimated Total Value</p>
+      <h2 id="total-value-amount">$0.00</h2>
+      <p>Based on current appraisal.</p>
+    </div>
+
+    <!-- Buttons -->
+    <div class="action-buttons">
+      {% comment %} <button class="btn-disabled">Add another item</button> {% endcomment %}
+      <a href="/pages/appraisal-form?add=true" class="btn-recycle">Add another item</a>
+      <button class="btn-disabled">Proceed to Buy Back</button>
+      <a href="/pages/appraisal-results" class="btn-recycle">Proceed to Recycle</a>
+    </div>
+  </div>
+</section>
+
+<!-- Delete Confirmation Modal -->
+<div id="delete-confirmation-modal" class="delete-modal" style="display: none;">
+  <div class="delete-modal-overlay"></div>
+  <div class="delete-modal-content">
+    <h3>Remove Jewelry Item</h3>
+    <p>Are you sure you want to remove this jewelry item from your list? This action cannot be undone.</p>
+    <div class="delete-modal-buttons">
+      <button id="cancel-delete-btn" class="btn-cancel">No, Keep It</button>
+      <button id="confirm-delete-btn" class="btn-confirm-delete">Yes, Remove It</button>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Wrapper section for consistent spacing */
+.estimated-value-wrapper {
+  background-color: #f8f9fa;
+  padding: 40px 20px;
+  min-height: 80vh;
+}
+.jewelry-list-container {
+  max-width: 700px;
+  margin: auto;
+  padding: 20px;
+  background: #fdfdfd;
+  text-align: center;
+  font-family: Arial, sans-serif;
+  border-radius: 12px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+}
+
+.title {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.jewelry-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f0f6ff;
+  padding: 15px;
+  margin-bottom: 15px;
+  border: 1px solid #cce0ff;
+  border-radius: 8px;
+}
+
+.item-images {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.image-placeholder {
+  width: 50px;
+  height: 50px;
+  background: #a3c4f3;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  border: 2px solid #87CEEB;
+  transition: all 0.3s ease;
+}
+
+.image-placeholder:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.image-placeholder img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.placeholder-icon {
+  font-size: 16px;
+  color: #fff;
+  opacity: 0.8;
+}
+
+.image-placeholder.has-image .placeholder-icon {
+  display: none;
+}
+
+.item-icons {
+  display: flex;
+  gap: 8px;
+}
+
+.icon-box {
+  display: inline-block;
+  width: 40px;
+  height: 40px;
+  background: #a3c4f3;
+  border-radius: 6px;
+}
+
+.jewelry-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-analysis {
+  padding: 8px 14px;
+  background: #4a90e2;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-size: 14px;
+}
+
+.btn-analysis:hover {
+  background: #357abd;
+}
+
+.btn-delete {
+  padding: 8px 12px;
+  background: #dc3545;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-size: 18px;
+  font-weight: bold;
+  line-height: 1;
+  min-width: 36px;
+}
+
+.btn-delete:hover {
+  background: #c82333;
+  transform: scale(1.05);
+}
+
+.status-circle {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-ready {
+  background: #4caf50; /* green means ready */
+}
+
+.total-value-box {
+  background: #f8f9fa;
+  padding: 20px;
+  margin: 20px 0;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+
+.total-value-box h2 {
+  font-size: 28px;
+  margin: 10px 0;
+  color: #222;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.btn-disabled {
+  padding: 10px 18px;
+  background: #ccc;
+  border: none;
+  border-radius: 6px;
+  cursor: not-allowed;
+}
+
+.btn-recycle {
+  padding: 10px 18px;
+  background: #28a745;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 6px;
+  font-weight: bold;
+  transition: background 0.2s;
+}
+
+.btn-recycle:hover {
+  background: #218838;
+}
+
+/* Responsive adjustments for images */
+@media (max-width: 768px) {
+  .jewelry-row {
+    flex-direction: column;
+    gap: 15px;
+    align-items: center;
+  }
+  
+  .item-images {
+    justify-content: center;
+  }
+  
+  .image-placeholder {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .placeholder-icon {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .image-placeholder {
+    width: 55px;
+    height: 55px;
+  }
+  
+  .item-images {
+    gap: 6px;
+  }
+  
+  .jewelry-buttons {
+    flex-direction: column;
+    gap: 6px;
+  }
+  
+  .btn-analysis,
+  .btn-delete {
+    font-size: 12px;
+    padding: 6px 10px;
+    min-width: auto;
+  }
+  
+  .btn-delete {
+    font-size: 16px;
+    min-width: 32px;
+  }
+}
+
+/* Delete Confirmation Modal */
+.delete-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.delete-modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+}
+
+.delete-modal-content {
+  position: relative;
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.delete-modal-content h3 {
+  margin: 0 0 16px 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #dc3545;
+}
+
+.delete-modal-content p {
+  margin: 0 0 24px 0;
+  font-size: 16px;
+  color: #666;
+  line-height: 1.5;
+}
+
+.delete-modal-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.btn-cancel {
+  padding: 12px 20px;
+  background: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-cancel:hover {
+  background: #5a6268;
+  transform: translateY(-1px);
+}
+
+.btn-confirm-delete {
+  padding: 12px 20px;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-confirm-delete:hover {
+  background: #c82333;
+  transform: translateY(-1px);
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Function to display multiple jewelry items from sessionStorage
+  function displayJewelryItems() {
+    try {
+      // Get jewelry items from sessionStorage
+      const storedJewelryItems = sessionStorage.getItem('jewelryItems');
+      if (!storedJewelryItems) {
+        console.log('No jewelry items found in sessionStorage, checking for legacy data');
+        // Try to convert legacy single-item data to new format
+        convertLegacyDataToJewelryItems();
+        return;
+      }
+
+      const jewelryItems = JSON.parse(storedJewelryItems);
+      console.log('Retrieved', jewelryItems.length, 'jewelry items from sessionStorage');
+
+      // Clear existing jewelry rows
+      const existingRows = document.querySelectorAll('.jewelry-row');
+      existingRows.forEach(row => row.remove());
+
+      let totalValue = 0;
+
+      // Display each jewelry item
+      jewelryItems.forEach((item, itemIndex) => {
+        const jewelryRow = createJewelryRow(item, itemIndex);
+        
+        // Insert before the total-value-box
+        const totalValueBox = document.querySelector('.total-value-box');
+        totalValueBox.parentNode.insertBefore(jewelryRow, totalValueBox);
+
+        // Add to total value
+        if (item.calculatedValues && item.calculatedValues.afterFeesValue) {
+          const amount = parseFloat(item.calculatedValues.afterFeesValue.replace(/[$,]/g, '')) || 0;
+          totalValue += amount;
+        }
+      });
+
+      // Update total value display
+      const totalValueAmount = document.getElementById('total-value-amount');
+      if (totalValueAmount) {
+        totalValueAmount.textContent = '$' + totalValue.toFixed(2);
+      }
+
+    } catch (error) {
+      console.error('Error displaying jewelry items:', error);
+    }
+  }
+
+  // Function to create a jewelry row element
+  function createJewelryRow(item, itemIndex) {
+    const jewelryRow = document.createElement('div');
+    jewelryRow.className = 'jewelry-row';
+    jewelryRow.id = `jewelry-row-${itemIndex}`;
+
+    // Create images section
+    const itemImages = document.createElement('div');
+    itemImages.className = 'item-images';
+
+    // Display up to 3 images
+    const displayImages = item.images ? item.images.slice(0, 3) : [];
+    
+    for (let i = 0; i < 3; i++) {
+      const imagePlaceholder = document.createElement('div');
+      imagePlaceholder.className = 'image-placeholder';
+      imagePlaceholder.id = `image-${itemIndex}-${i + 1}`;
+
+      if (i < displayImages.length) {
+        // Show image
+        const img = document.createElement('img');
+        img.src = displayImages[i].dataUrl;
+        img.alt = displayImages[i].name || `Jewelry ${itemIndex + 1} image ${i + 1}`;
+        img.loading = 'lazy';
+        
+        imagePlaceholder.classList.add('has-image');
+        imagePlaceholder.appendChild(img);
+        imagePlaceholder.title = displayImages[i].name || `Image ${i + 1}`;
+      } else {
+        // Show placeholder icon
+        imagePlaceholder.style.display = 'none';
+      }
+
+      itemImages.appendChild(imagePlaceholder);
+    }
+
+    // Create estimated value display
+    const estimatedValueDisplay = document.createElement('div');
+    estimatedValueDisplay.className = 'estimated-value-display';
+    
+    const estimatedValueAmount = document.createElement('div');
+    estimatedValueAmount.className = 'estimated-value-amount';
+    estimatedValueAmount.textContent = item.calculatedValues?.afterFeesValue || '$0.00';
+    
+    const estimatedValueLabel = document.createElement('div');
+    estimatedValueLabel.className = 'estimated-value-label';
+    estimatedValueLabel.textContent = 'Estimated Value';
+    
+    estimatedValueDisplay.appendChild(estimatedValueAmount);
+    estimatedValueDisplay.appendChild(estimatedValueLabel);
+
+    // Create buttons container
+    const buttonsContainer = document.createElement('div');
+    buttonsContainer.className = 'jewelry-buttons';
+
+    // Create view analysis button
+    const viewAnalysisBtn = document.createElement('button');
+    viewAnalysisBtn.className = 'btn-analysis';
+    viewAnalysisBtn.textContent = 'View Analysis';
+    viewAnalysisBtn.addEventListener('click', () => redirectToValueCalculator(itemIndex));
+
+    // Create delete button
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn-delete';
+    deleteBtn.textContent = '×';
+    deleteBtn.title = 'Remove this jewelry item';
+    deleteBtn.addEventListener('click', () => showDeleteConfirmation(itemIndex));
+
+    // Add buttons to container
+    buttonsContainer.appendChild(viewAnalysisBtn);
+    buttonsContainer.appendChild(deleteBtn);
+
+    // Assemble the row
+    jewelryRow.appendChild(itemImages);
+    jewelryRow.appendChild(estimatedValueDisplay);
+    jewelryRow.appendChild(buttonsContainer);
+
+    return jewelryRow;
+  }
+
+  // Function to convert legacy single-item data to new jewelry items format
+  function convertLegacyDataToJewelryItems() {
+    try {
+      const storedImages = sessionStorage.getItem('uploadedImages');
+      const storedValues = sessionStorage.getItem('calculatedValues');
+
+      if (storedImages || storedValues) {
+        console.log('Converting legacy data to jewelry items format');
+        
+        const jewelryItem = {
+          id: Date.now(), // Generate unique ID
+          images: storedImages ? JSON.parse(storedImages) : [],
+          calculatedValues: storedValues ? JSON.parse(storedValues) : null,
+          timestamp: new Date().toISOString()
+        };
+
+        const jewelryItems = [jewelryItem];
+        sessionStorage.setItem('jewelryItems', JSON.stringify(jewelryItems));
+        
+        // Display the converted data
+        displayJewelryItems();
+      }
+    } catch (error) {
+      console.error('Error converting legacy data:', error);
+    }
+  }
+
+  // Variables for delete confirmation
+  let itemToDelete = null;
+  const deleteModal = document.getElementById('delete-confirmation-modal');
+  const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+  const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+
+  // Function to show delete confirmation dialog
+  function showDeleteConfirmation(itemIndex) {
+    itemToDelete = itemIndex;
+    deleteModal.style.display = 'flex';
+    document.body.style.overflow = 'hidden'; // Prevent background scrolling
+  }
+
+  // Function to hide delete confirmation dialog
+  function hideDeleteConfirmation() {
+    deleteModal.style.display = 'none';
+    document.body.style.overflow = 'auto';
+    itemToDelete = null;
+  }
+
+  // Function to remove jewelry item from sessionStorage and refresh display
+  function removeJewelryItem(itemIndex) {
+    try {
+      const storedJewelryItems = sessionStorage.getItem('jewelryItems');
+      if (!storedJewelryItems) {
+        console.log('No jewelry items found to delete');
+        return;
+      }
+
+      let jewelryItems = JSON.parse(storedJewelryItems);
+      
+      if (itemIndex >= 0 && itemIndex < jewelryItems.length) {
+        // Remove the item at the specified index
+        const removedItem = jewelryItems.splice(itemIndex, 1)[0];
+        console.log('Removed jewelry item:', removedItem);
+
+        // Update sessionStorage with the new array
+        if (jewelryItems.length > 0) {
+          sessionStorage.setItem('jewelryItems', JSON.stringify(jewelryItems));
+        } else {
+          // If no items left, clear all jewelry-related session data
+          sessionStorage.removeItem('jewelryItems');
+          sessionStorage.removeItem('uploadedImages');
+          sessionStorage.removeItem('calculatedValues');
+          console.log('All jewelry items removed, cleared session data');
+        }
+
+        // Refresh the display
+        displayJewelryItems();
+        
+        console.log(`Successfully removed jewelry item at index ${itemIndex}`);
+      } else {
+        console.error('Invalid item index for deletion:', itemIndex);
+      }
+    } catch (error) {
+      console.error('Error removing jewelry item:', error);
+    }
+  }
+
+  // Event listeners for delete confirmation modal
+  if (cancelDeleteBtn) {
+    cancelDeleteBtn.addEventListener('click', hideDeleteConfirmation);
+  }
+
+  if (confirmDeleteBtn) {
+    confirmDeleteBtn.addEventListener('click', () => {
+      if (itemToDelete !== null) {
+        removeJewelryItem(itemToDelete);
+        hideDeleteConfirmation();
+      }
+    });
+  }
+
+  // Close modal when clicking on overlay
+  if (deleteModal) {
+    deleteModal.addEventListener('click', (e) => {
+      if (e.target === deleteModal || e.target.classList.contains('delete-modal-overlay')) {
+        hideDeleteConfirmation();
+      }
+    });
+  }
+
+  // Close modal on Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && deleteModal.style.display === 'flex') {
+      hideDeleteConfirmation();
+    }
+  });
+
+  // Function to redirect back to value-calculator page with preserved data for specific jewelry item
+  function redirectToValueCalculator(itemIndex) {
+    try {
+      const storedJewelryItems = sessionStorage.getItem('jewelryItems');
+      if (!storedJewelryItems) {
+        console.log('No jewelry items found, redirecting with current session data');
+        window.location.href = '/pages/value-calculator';
+        return;
+      }
+
+      const jewelryItems = JSON.parse(storedJewelryItems);
+      if (jewelryItems[itemIndex]) {
+        const selectedItem = jewelryItems[itemIndex];
+        
+        // Set the current item's data as active session data for the calculator
+        if (selectedItem.images) {
+          sessionStorage.setItem('uploadedImages', JSON.stringify(selectedItem.images));
+        }
+        if (selectedItem.calculatedValues) {
+          sessionStorage.setItem('calculatedValues', JSON.stringify(selectedItem.calculatedValues));
+        }
+        
+        // Store which item we're editing
+        sessionStorage.setItem('currentJewelryItemIndex', itemIndex.toString());
+        
+        console.log(`Redirecting to value-calculator for jewelry item ${itemIndex}`);
+      }
+      
+      window.location.href = '/pages/value-calculator';
+    } catch (error) {
+      console.error('Error redirecting to value calculator:', error);
+      window.location.href = '/pages/value-calculator';
+    }
+  }
+
+  // Initialize the page
+  displayJewelryItems();
+});
+</script>

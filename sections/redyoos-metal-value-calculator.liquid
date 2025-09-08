@@ -1,0 +1,1046 @@
+{% schema %}
+{
+  "name": "Metal Value Calculator",
+  "settings": [],
+  "blocks": [],
+  "presets": [
+    {
+      "name": "Metal Value Calculator"
+    }
+  ]
+}
+{% endschema %}
+
+<section class="metal-value-calculator">
+  <div class="calculator-container">
+    
+    <!-- Uploaded Images Section -->
+    <div id="uploaded-images-section" class="uploaded-images-section" style="display: none;">
+      <div class="uploaded-images-header">
+        <h3 class="uploaded-images-title">Your Uploaded Images</h3>
+        <button type="button" id="hide-images-btn" class="hide-images-btn">Hide Images</button>
+      </div>
+      <div class="uploaded-images-container" id="uploaded-images-container">
+        <!-- Images will be dynamically inserted here -->
+      </div>
+    </div>
+    
+    <div class="calculator-layout">
+      <!-- Left Column - Calculator Form -->
+      <div class="calculator-form">
+        <h2 class="calculator-title">Metal Value Calculator</h2>
+        
+        <div class="form-group">
+          <label for="metal-select" class="form-label">Select Metal</label>
+          <select id="metal-select" class="form-select">
+            <option value="">-- Select Metal --</option>
+            <option value="gold">Gold</option>
+            <option value="silver">Silver</option>
+            <option value="platinum">Platinum</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="purity-select" class="form-label">Purity</label>
+          <select id="purity-select" class="form-select">
+            <option value="">-- Select Purity --</option>
+            <!-- Gold options -->
+            <option value="24k" data-metal="gold" data-purity="1.0">24K</option>
+            <option value="22k" data-metal="gold" data-purity="0.916">22K</option>
+            <option value="18k" data-metal="gold" data-purity="0.75">18K</option>
+            <option value="14k" data-metal="gold" data-purity="0.583">14K</option>
+            <option value="10k" data-metal="gold" data-purity="0.417">10K</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="weight-input" class="form-label" id="weight-label">Weight (g)</label>
+          <div class="weight-help-text">*we only value the metal. If your item has stones, beads etc., we will need to adjust weight by 30% or more. Otherwise you can remove embellishments prior to weighing.</div>
+          <input type="number" id="weight-input" class="form-input" placeholder="100" step="0.01" min="0">
+        </div>
+
+        <div class="form-group">
+          <label for="unit-select" class="form-label">Unit of Measure</label>
+          <select id="unit-select" class="form-select">
+            <option value="grams">Grams</option>
+            <option value="ounces">Troy Ounce</option>
+            <option value="pennyweights">DWT(Pennyweight)</option>
+          </select>
+        </div>
+
+        <div class="metal-prices">
+          <div class="metal-prices-title">Metal Price ($)</div>
+          <div class="price-row">
+            <span class="metal-name">Gold:</span>
+            <span class="metal-price" id="gold-price">$3,480.78</span>
+          </div>
+          <div class="price-row">
+            <span class="metal-name">Silver:</span>
+            <span class="metal-price" id="silver-price">$40.46</span>
+          </div>
+          <div class="price-row">
+            <span class="metal-name">Platinum:</span>
+            <span class="metal-price" id="platinum-price">$1,382.00</span>
+          </div>
+          <input type="number" id="custom-price" class="custom-price-input" placeholder="$100" step="0.01">
+          <div class="price-disclaimer">*Precious metals prices constantly change throughout the day. Prices shown here represent the last published prices per ounce and is subject to change.</div>
+        </div>
+
+        <button type="button" id="calculate-btn" class="calculate-btn">Calculate</button>
+      </div>
+
+      <!-- Right Column - Results -->
+      <div class="calculator-results">
+        <h3 class="results-title">See Your Metal Calculated Values</h3>
+        
+        <div class="results-top-row">
+          <div class="result-card price-per-gram">
+            <div class="result-value" id="price-per-gram">$0.00</div>
+            <div class="result-label">Price Per Gram</div>
+          </div>
+          <div class="result-card estimated-value">
+            <div class="result-value" id="estimated-value">$0.00</div>
+            <div class="result-label">Estimated Value</div>
+          </div>
+        </div>
+
+        <div class="result-card after-fees">
+          <div class="after-fees-title">Estimated Value AFTER Fees</div>
+          <div class="result-value large" id="after-fees-value">$0.00</div>
+        </div>
+
+        <div class="disclaimer">
+          <p><strong>Disclaimer:</strong> This calculator provides an approximate value for the amount of fine (or pure) gold or silver in your item. It does not factor in intrinsic value that may apply to rare collectibles and coins or branded jewelry. Plus, the calculator provides market indications of what your gold and silver is worth if it were in an investment grade form. Additionally, we only value the metal. If your item has stones, beads etc., we will need to adjust weight by 30% or more. Otherwise you can remove embellishments prior to weighing. <strong>It is not a confirmation of Redyoos' purchase price.</strong></p>
+        </div>
+
+        <div class="navigation-buttons">
+          <button type="button" id="return-button" class="nav-btn return-btn">← Return to Upload images page</button>
+          <button type="button" id="proceed-button" class="nav-btn proceed-btn">Proceed to Jewelry List page →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+/* Metal Value Calculator Styles */
+.metal-value-calculator {
+  background-color: #f5f5f5;
+  padding: 40px 20px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Uploaded Images Section */
+.uploaded-images-section {
+  background: white;
+  padding: 25px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 30px;
+}
+
+.uploaded-images-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.uploaded-images-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+.uploaded-images-title::before {
+  content: "📷";
+  margin-right: 8px;
+  font-size: 1rem;
+}
+
+.hide-images-btn {
+  background: none;
+  border: 1px solid #d1d5db;
+  color: #6b7280;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.hide-images-btn:hover {
+  background-color: #f9fafb;
+  color: #374151;
+  border-color: #9ca3af;
+}
+
+.uploaded-images-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 15px;
+  justify-content: center;
+}
+
+.uploaded-image-card {
+  position: relative;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.uploaded-image-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.uploaded-image-card img {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  display: block;
+}
+
+.uploaded-image-info {
+  padding: 10px;
+  background-color: white;
+}
+
+.uploaded-image-name {
+  font-size: 0.75rem;
+  color: #374151;
+  font-weight: 500;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.uploaded-image-size {
+  font-size: 0.6875rem;
+  color: #6b7280;
+}
+
+/* Empty state for when no images are found */
+.no-images-message {
+  text-align: center;
+  color: #6b7280;
+  font-style: italic;
+  padding: 20px;
+  background-color: #f9fafb;
+  border-radius: 6px;
+  border: 2px dashed #d1d5db;
+}
+
+.calculator-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.calculator-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  align-items: start;
+}
+
+/* Left Column - Calculator Form */
+.calculator-form {
+  background: white;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.calculator-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #333;
+  margin: 0 0 25px 0;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.form-select,
+.form-input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background-color: white;
+  color: #333;
+  box-sizing: border-box;
+}
+
+.form-select:focus,
+.form-input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.weight-help-text {
+  font-size: 0.75rem;
+  color: #666;
+  margin: 5px 0;
+  line-height: 1.4;
+}
+
+/* Metal Prices Section */
+.metal-prices {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 6px;
+  margin-bottom: 25px;
+}
+
+.metal-prices-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.metal-name {
+  font-size: 0.85rem;
+  color: #333;
+}
+
+.metal-price {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.metal-price[id="gold-price"] {
+  color: #3b82f6;
+}
+
+.metal-price[id="silver-price"] {
+  color: #3b82f6;
+}
+
+.metal-price[id="platinum-price"] {
+  color: #3b82f6;
+}
+
+.custom-price-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-top: 10px;
+  font-size: 0.85rem;
+}
+
+.price-disclaimer {
+  font-size: 0.7rem;
+  color: #666;
+  margin-top: 8px;
+  line-height: 1.3;
+}
+
+/* Calculate Button */
+.calculate-btn {
+  width: 100%;
+  padding: 12px;
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.calculate-btn:hover {
+  background-color: #5a6268;
+}
+
+.calculate-btn:disabled {
+  background-color: #e9ecef;
+  color: #6c757d;
+  cursor: not-allowed;
+}
+
+/* Right Column - Results */
+.calculator-results {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.results-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+  text-align: center;
+}
+
+.results-top-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.result-card {
+  background: white;
+  padding: 25px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.result-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #8b7355;
+  margin-bottom: 5px;
+}
+
+.result-value.large {
+  font-size: 2.5rem;
+  margin-bottom: 0;
+}
+
+.result-label {
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.after-fees {
+  padding: 30px;
+}
+
+.after-fees-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 15px;
+}
+
+/* Disclaimer */
+.disclaimer {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  border-left: 4px solid #dee2e6;
+}
+
+.disclaimer p {
+  font-size: 0.8rem;
+  color: #666;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.disclaimer strong {
+  color: #333;
+}
+
+/* Navigation Buttons */
+.navigation-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  margin-top: 25px;
+  padding-top: 20px;
+  border-top: 1px solid #dee2e6;
+}
+
+.nav-btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.return-btn {
+  background-color: #6c757d;
+  color: white;
+}
+
+.return-btn:hover {
+  background-color: #5a6268;
+  transform: translateY(-1px);
+}
+
+.proceed-btn {
+  background-color: #28a745;
+  color: white;
+}
+
+.proceed-btn:hover {
+  background-color: #218838;
+  transform: translateY(-1px);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .uploaded-images-section {
+    padding: 20px;
+  }
+  
+  .uploaded-images-container {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+  }
+  
+  .uploaded-image-card img {
+    height: 120px;
+  }
+  
+  .calculator-layout {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .calculator-form {
+    padding: 20px;
+  }
+  
+  .results-top-row {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
+  .result-card {
+    padding: 20px;
+  }
+  
+  .result-value {
+    font-size: 1.5rem;
+  }
+  
+  .result-value.large {
+    font-size: 2rem;
+  }
+  
+  .navigation-buttons {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .nav-btn {
+    justify-content: center;
+    padding: 14px 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .metal-value-calculator {
+    padding: 20px 15px;
+  }
+  
+  .uploaded-images-section {
+    padding: 15px;
+  }
+  
+  .uploaded-images-container {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  }
+  
+  .uploaded-image-card img {
+    height: 100px;
+  }
+  
+  .calculator-form {
+    padding: 15px;
+  }
+  
+  .result-card {
+    padding: 15px;
+  }
+  
+  .after-fees {
+    padding: 20px;
+  }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // DOM Elements
+  const metalSelect = document.getElementById('metal-select');
+  const puritySelect = document.getElementById('purity-select');
+  const weightInput = document.getElementById('weight-input');
+  const unitSelect = document.getElementById('unit-select');
+  const weightLabel = document.getElementById('weight-label');
+  const customPrice = document.getElementById('custom-price');
+  const calculateBtn = document.getElementById('calculate-btn');
+  
+  // Result elements
+  const pricePerGram = document.getElementById('price-per-gram');
+  const estimatedValue = document.getElementById('estimated-value');
+  const afterFeesValue = document.getElementById('after-fees-value');
+
+  // Metal prices per troy ounce (31.1035 grams)
+  const metalPrices = {
+    gold: 3480.78,
+    silver: 40.46,
+    platinum: 1382.00
+  };
+
+  // Fee percentage (typical precious metal dealer fee)
+  const feePercentage = 0.15; // 15% fee
+
+  // Update weight label based on selected unit
+  function updateWeightLabel() {
+    const selectedUnit = unitSelect.value;
+    const unitLabels = {
+      'grams': 'Weight (g)',
+      'ounces': 'Weight (oz t)',
+      'pennyweights': 'Weight (dwt)'
+    };
+    
+    const unitPlaceholders = {
+      'grams': '100',
+      'ounces': '3.21',
+      'pennyweights': '64.3'
+    };
+    
+    // Update label text
+    weightLabel.textContent = unitLabels[selectedUnit] || 'Weight (g)';
+    
+    // Update placeholder to show appropriate example value
+    weightInput.placeholder = unitPlaceholders[selectedUnit] || '100';
+  }
+
+  // Update purity options based on selected metal
+  function updatePurityOptions() {
+    const selectedMetal = metalSelect.value;
+    const purityOptions = puritySelect.querySelectorAll('option');
+    const purityGroup = puritySelect.closest('.form-group');
+    
+    // Reset purity selection
+    puritySelect.value = '';
+    
+    // Hide/show entire purity dropdown based on selected metal
+    if (selectedMetal === 'silver' || selectedMetal === 'platinum') {
+      purityGroup.style.display = 'none';
+    } else {
+      purityGroup.style.display = 'block';
+    }
+    
+    // Show/hide options based on selected metal
+    purityOptions.forEach(option => {
+      if (option.value === '') {
+        option.style.display = 'block';
+        return;
+      }
+      
+      const optionMetal = option.getAttribute('data-metal');
+      if (optionMetal === selectedMetal || !selectedMetal) {
+        option.style.display = 'block';
+      } else {
+        option.style.display = 'none';
+      }
+    });
+  }
+
+  // Convert weight to grams
+  function convertToGrams(weight, unit) {
+    switch (unit) {
+      case 'ounces':
+        return weight * 31.1035; // Troy ounce to grams
+      case 'pennyweights':
+        return weight * 1.55517; // Pennyweight to grams
+      case 'grams':
+      default:
+        return weight;
+    }
+  }
+
+  // Function to update proceed button state based on calculated value
+  function updateProceedButtonState() {
+    const proceedButton = document.getElementById('proceed-button');
+    if (!proceedButton) return;
+    
+    const afterFeesText = afterFeesValue.textContent;
+    const afterFeesAmount = parseFloat(afterFeesText.replace(/[$,]/g, '')) || 0;
+    
+    if (afterFeesAmount <= 0) {
+      proceedButton.disabled = true;
+      proceedButton.style.backgroundColor = '#d1d5db';
+      proceedButton.style.color = '#9ca3af';
+      proceedButton.style.cursor = 'not-allowed';
+      proceedButton.style.transform = 'none';
+    } else {
+      proceedButton.disabled = false;
+      proceedButton.style.backgroundColor = '#28a745';
+      proceedButton.style.color = 'white';
+      proceedButton.style.cursor = 'pointer';
+    }
+  }
+
+  // Calculate metal value
+  function calculateValue() {
+    const metal = metalSelect.value;
+    const weight = parseFloat(weightInput.value) || 0;
+    const unit = unitSelect.value;
+
+    // Reset values if incomplete data
+    if (!metal || weight <= 0) {
+      pricePerGram.textContent = '$0.00';
+      estimatedValue.textContent = '$0.00';
+      afterFeesValue.textContent = '$0.00';
+      updateProceedButtonState();
+      return;
+    }
+
+    // For Silver and Platinum, no purity needed (assume pure)
+    let purity = 1.0;
+    
+    // For Gold, check if purity is selected
+    if (metal === 'gold') {
+      const purityOption = puritySelect.selectedOptions[0];
+      if (!purityOption || !purityOption.getAttribute('data-purity')) {
+        pricePerGram.textContent = '$0.00';
+        estimatedValue.textContent = '$0.00';
+        afterFeesValue.textContent = '$0.00';
+        return;
+      }
+      purity = parseFloat(purityOption.getAttribute('data-purity'));
+    }
+
+    const weightInGrams = convertToGrams(weight, unit);
+    
+    // Get metal price (custom or default)
+    let pricePerOunce = metalPrices[metal];
+    if (customPrice.value && parseFloat(customPrice.value) > 0) {
+      pricePerOunce = parseFloat(customPrice.value);
+    }
+
+    // Calculate price per gram
+    const pricePerGramValue = (pricePerOunce / 31.1035) * purity;
+    
+    // Calculate estimated value
+    const estimatedValueAmount = pricePerGramValue * weightInGrams;
+    
+    // Calculate value after fees
+    const afterFeesAmount = estimatedValueAmount * (1 - feePercentage);
+
+    // Update display
+    pricePerGram.textContent = '$' + pricePerGramValue.toFixed(2);
+    estimatedValue.textContent = '$' + estimatedValueAmount.toFixed(2);
+    afterFeesValue.textContent = '$' + afterFeesAmount.toFixed(2);
+    
+    // Update proceed button state
+    updateProceedButtonState();
+  }
+
+  // Navigation functions
+  function redirectToUploadPage() {
+    window.location.href = '/pages/appraisal-form';
+  }
+  
+  function redirectToJewelryList() {
+    const proceedButton = document.getElementById('proceed-button');
+    
+    // Prevent navigation if button is disabled
+    if (proceedButton && proceedButton.disabled) {
+      return;
+    }
+    
+    // Store calculated values in SessionStorage for the estimated-value page
+    const calculatedValues = {
+      pricePerGram: pricePerGram.textContent,
+      estimatedValue: estimatedValue.textContent,
+      afterFeesValue: afterFeesValue.textContent,
+      metalType: metalSelect.value,
+      weight: weightInput.value,
+      unit: unitSelect.value,
+      purity: puritySelect.value || null
+    };
+    
+    // Store for legacy compatibility
+    sessionStorage.setItem('calculatedValues', JSON.stringify(calculatedValues));
+    
+    // Update or create jewelry items structure
+    updateJewelryItemsWithCurrentData(calculatedValues);
+    
+    console.log('Stored calculated values for estimated-value page:', calculatedValues);
+    
+    window.location.href = '/pages/estimated-value';
+  }
+
+  // Function to update jewelry items with current calculated data
+  function updateJewelryItemsWithCurrentData(calculatedValues) {
+    try {
+      const currentImages = sessionStorage.getItem('uploadedImages');
+      const currentItemIndex = sessionStorage.getItem('currentJewelryItemIndex');
+      
+      let jewelryItems = [];
+      const existingItems = sessionStorage.getItem('jewelryItems');
+      if (existingItems) {
+        jewelryItems = JSON.parse(existingItems);
+      }
+
+      const jewelryItem = {
+        id: Date.now(),
+        images: currentImages ? JSON.parse(currentImages) : [],
+        calculatedValues: calculatedValues,
+        timestamp: new Date().toISOString()
+      };
+
+      if (currentItemIndex !== null && !isNaN(parseInt(currentItemIndex))) {
+        // Update existing item
+        const itemIndex = parseInt(currentItemIndex);
+        if (itemIndex < jewelryItems.length) {
+          jewelryItems[itemIndex] = { ...jewelryItems[itemIndex], ...jewelryItem };
+          console.log(`Updated jewelry item at index ${itemIndex}`);
+        } else {
+          jewelryItems.push(jewelryItem);
+          console.log('Added new jewelry item (index was out of range)');
+        }
+        // Clear the current item index
+        sessionStorage.removeItem('currentJewelryItemIndex');
+      } else {
+        // Add new item
+        jewelryItems.push(jewelryItem);
+        console.log('Added new jewelry item');
+      }
+
+      sessionStorage.setItem('jewelryItems', JSON.stringify(jewelryItems));
+      console.log('Updated jewelryItems:', jewelryItems);
+      
+    } catch (error) {
+      console.error('Error updating jewelry items:', error);
+    }
+  }
+
+  // Event listeners
+  metalSelect.addEventListener('change', updatePurityOptions);
+  unitSelect.addEventListener('change', updateWeightLabel);
+  calculateBtn.addEventListener('click', calculateValue);
+  
+  // Navigation button event listeners
+  const returnButton = document.getElementById('return-button');
+  const proceedButton = document.getElementById('proceed-button');
+  
+  if (returnButton) {
+    returnButton.addEventListener('click', redirectToUploadPage);
+  }
+  
+  if (proceedButton) {
+    proceedButton.addEventListener('click', redirectToJewelryList);
+  }
+
+  // Function to parse weight string and extract numeric value
+  function parseWeightFromString(weightString) {
+    if (!weightString) return null;
+    // Extract number from string like "15.2g" -> 15.2
+    const match = weightString.toString().match(/^(\d+(?:\.\d+)?)/);
+    return match ? parseFloat(match[1]) : null;
+  }
+
+  // Function to format file size for display
+  function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  }
+
+  // Function to display uploaded images
+  function displayUploadedImages() {
+    try {
+      const storedImages = sessionStorage.getItem('uploadedImages');
+      if (!storedImages) return;
+
+      const images = JSON.parse(storedImages);
+      console.log('Retrieved', images.length, 'images from sessionStorage');
+
+      const imagesSection = document.getElementById('uploaded-images-section');
+      const imagesContainer = document.getElementById('uploaded-images-container');
+      const hideImagesBtn = document.getElementById('hide-images-btn');
+
+      if (!images || images.length === 0) {
+        return;
+      }
+
+      // Clear the container first
+      imagesContainer.innerHTML = '';
+
+      // Create image cards
+      images.forEach((image, index) => {
+        const imageCard = document.createElement('div');
+        imageCard.className = 'uploaded-image-card';
+        
+        imageCard.innerHTML = `
+          <img src="${image.dataUrl}" alt="${image.name}" loading="lazy">
+          <div class="uploaded-image-info">
+            <div class="uploaded-image-name" title="${image.name}">${image.name}</div>
+            <div class="uploaded-image-size">${formatFileSize(image.size)}</div>
+          </div>
+        `;
+        
+        imagesContainer.appendChild(imageCard);
+      });
+
+      // Show the images section
+      imagesSection.style.display = 'block';
+
+      // Add hide functionality
+      if (hideImagesBtn) {
+        hideImagesBtn.addEventListener('click', () => {
+          imagesSection.style.display = 'none';
+        });
+      }
+
+      // Don't remove images immediately - preserve them for the estimated-value page
+      console.log('Images displayed successfully, preserving for estimated-value page');
+
+    } catch (error) {
+      console.error('Error displaying uploaded images:', error);
+    }
+  }
+
+  // Function to restore form values from calculatedValues (when returning from estimated-value page)
+  function restoreFormFromCalculatedValues() {
+    try {
+      const calculatedData = sessionStorage.getItem('calculatedValues');
+      if (!calculatedData) return false; // Return false if no calculated data found
+
+      const values = JSON.parse(calculatedData);
+      console.log('Restoring form with calculated values:', values);
+
+      // Restore metal type
+      if (values.metalType) {
+        metalSelect.value = values.metalType;
+        updatePurityOptions(); // Update purity options based on selected metal
+      }
+
+      // Restore purity (only for gold)
+      if (values.purity && values.metalType === 'gold') {
+        setTimeout(() => {
+          puritySelect.value = values.purity;
+        }, 100);
+      }
+
+      // Restore weight
+      if (values.weight) {
+        weightInput.value = values.weight;
+      }
+
+      // Restore unit
+      if (values.unit) {
+        unitSelect.value = values.unit;
+        updateWeightLabel();
+      }
+
+      // Restore the calculated results
+      if (values.pricePerGram) pricePerGram.textContent = values.pricePerGram;
+      if (values.estimatedValue) estimatedValue.textContent = values.estimatedValue;
+      if (values.afterFeesValue) afterFeesValue.textContent = values.afterFeesValue;
+
+      // Update proceed button state
+      updateProceedButtonState();
+
+      return true; // Return true if restoration was successful
+    } catch (error) {
+      console.error('Error restoring form from calculated values:', error);
+      return false;
+    }
+  }
+
+  // Function to auto-fill form from appraisal results
+  function autoFillFromAppraisalData() {
+    try {
+      const appraisalData = sessionStorage.getItem('appraisalResult');
+      if (!appraisalData) return;
+
+      const result = JSON.parse(appraisalData);
+      console.log('Auto-filling form with appraisal data:', result);
+
+      // Auto-fill metalType to metal dropdown
+      if (result.metalType) {
+        const metalValue = result.metalType.toLowerCase();
+        // Since the API now returns 'gold', 'silver', 'platinum' directly, we can use them as-is
+        if (metalSelect.querySelector(`option[value="${metalValue}"]`)) {
+          metalSelect.value = metalValue;
+          updatePurityOptions(); // Update purity options based on selected metal
+        }
+      }
+
+      // Auto-fill purity (only for gold)
+      if (result.purity && result.metalType && result.metalType.toLowerCase().includes('gold')) {
+        // Wait for purity options to be updated
+        setTimeout(() => {
+          const purityValue = result.purity.toLowerCase();
+          const purityOption = puritySelect.querySelector(`option[value="${purityValue}"]`);
+          if (purityOption) {
+            puritySelect.value = purityValue;
+          }
+        }, 100);
+      }
+
+      // Auto-fill weight
+      if (result.weight) {
+        const numericWeight = parseWeightFromString(result.weight);
+        if (numericWeight !== null) {
+          weightInput.value = numericWeight;
+        }
+      }
+
+      // Clear sessionStorage after successful auto-fill to prevent re-filling on refresh
+      sessionStorage.removeItem('appraisalResult');
+      
+    } catch (error) {
+      console.error('Error auto-filling form from appraisal data:', error);
+    }
+  }
+
+  // Initialize
+  updatePurityOptions();
+  updateWeightLabel();
+  
+  // Display uploaded images if they exist
+  displayUploadedImages();
+  
+  // Try to restore form from calculated values first (for when returning from estimated-value page)
+  // If that fails, try to auto-fill from appraisal data (for fresh form loads)
+  const wasRestored = restoreFormFromCalculatedValues();
+  if (!wasRestored) {
+    autoFillFromAppraisalData();
+  }
+  
+  // Initialize proceed button state
+  updateProceedButtonState();
+});
+</script>

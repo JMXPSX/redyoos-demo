@@ -1,0 +1,411 @@
+{% schema %}
+{
+  "name": "Mailkit Section",
+  "settings": [],
+  "blocks": [],
+  "presets": [
+    {
+      "name": "Mailkit Section"
+    }
+  ]
+}
+{% endschema %}
+
+{%- style -%}
+  .section-{{ section.id }}-padding {
+    padding-top: calc({{ section.settings.padding_top }}px * 0.75);
+    padding-bottom: calc({{ section.settings.padding_bottom }}px  * 0.75);
+  }
+
+  @media screen and (min-width: 750px) {
+    .section-{{ section.id }}-padding {
+      padding-top: {{ section.settings.padding_top }}px;
+      padding-bottom: {{ section.settings.padding_bottom }}px;
+    }
+  }
+{%- endstyle -%}
+
+<style>
+/* Services Section Styles */
+.services-section {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px;
+  text-align: center;
+  transition: all 0.5s ease-in-out;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.services-section.fade-out {
+  opacity: 0;
+  transform: translateY(-20px);
+  pointer-events: none;
+}
+
+.services-section h2 {
+  font-size: 28px;
+  margin-bottom: 30px;
+  font-weight: bold;
+}
+
+.services-grid {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.service-card {
+  background-color: #f7f7f7;
+  flex: 1 1 45%;
+  max-width: 500px;
+  padding: 20px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; /* Ensures button stays at bottom */
+  transition: transform 0.3s ease;
+}
+
+.service-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.service-image {
+  width: 100%;
+  height: 180px;
+  background-color: #e0e0e0;
+  margin-bottom: 20px;
+  border-radius: 4px;
+}
+
+.service-title {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  text-align: left;
+  width: 100%;
+}
+
+.service-description {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #333;
+  text-align: left;
+  width: 100%;
+  margin-bottom: 20px;
+  flex-grow: 1; /* Pushes button down */
+}
+
+.service-button {
+  color: white;
+  padding: 12px 24px;
+  text-decoration: none;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Different button colors */
+.service-button.recycle-button {
+  background-color: #007bff;
+}
+.service-button.recycle-button:hover {
+  background-color: #0056b3;
+}
+
+.service-button.buyback-button {
+  background-color: #28a745;
+}
+.service-button.buyback-button:hover {
+  background-color: #218838;
+}
+
+.service-button:active {
+  transform: translateY(0);
+}
+
+/* Loading state */
+.service-button.loading {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.service-button.loading::after {
+  content: "⏳";
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Back button styles */
+.back-button {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 50px;
+  cursor: pointer;
+  font-size: 14px;
+  z-index: 1000;
+  transition: all 0.3s ease;
+  display: none;
+  align-items: center;
+  gap: 5px;
+}
+
+.back-button:hover {
+  background-color: #5a6268;
+  transform: translateY(-1px);
+}
+
+.back-button.show {
+  display: inline-flex;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .services-grid {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .service-card {
+    max-width: 100%;
+  }
+  
+  .back-button {
+    position: relative;
+    top: auto;
+    left: auto;
+    margin: 20px auto;
+    display: block;
+  }
+}
+</style>
+
+<button class="back-button" id="backToServices">← Back to Services</button>
+
+<div class="section-{{ section.id }}-padding" id="servicesSection">
+  <div class="services-section">
+    <h2>{{ section.settings.section_title | default: 'Services' }}</h2>
+    <div class="services-grid">
+
+      <!-- Recycle Mail Kit -->
+      <div class="service-card">
+        <div class="service-image"></div>
+        <div class="service-title">Recycle Mail Kit</div>
+        <div class="service-description">
+          {{ section.settings.recycle_description | default: 'Turn your old, broken, or unwanted jewelry into something meaningful while helping the environment. Our secure mail kit makes it easy to responsibly recycle precious metals from damaged pieces, single earrings, or jewelry you no longer wear.' }}
+        </div>
+        <a href="{{ section.settings.recycle_link | default: '#recycle' }}" class="service-button recycle-button">
+          {{ section.settings.recycle_button_text | default: 'Get a Recycle Mail Kit' }}
+        </a>
+      </div>
+
+      <!-- Buy Back Mail Kit -->
+      <div class="service-card">
+        <div class="service-image"></div>
+        <div class="service-title">Buy Back Mail Kit</div>
+        <div class="service-description">
+          {{ section.settings.buyback_description | default: 'Get cash for your jewelry with our professional appraisal service. Send us your gold, silver, platinum, or gemstone pieces using our secure, insured mail kit. Our certified appraisers evaluate each item individually and provide competitive offers based on current market prices. Fast, transparent, and trustworthy.' }}
+        </div>
+        <a href="{{ section.settings.buyback_link | default: '/pages/appraisal-form' }}" class="service-button buyback-button">
+          {{ section.settings.buyback_button_text | default: 'Get a Buy Back Mail Kit' }}
+        </a>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// Enhanced page transition
+function initializePageTransition() {
+  const servicesSection = document.getElementById('servicesSection');
+  const buybackButton = document.querySelector('.buyback-button');
+  const backButton = document.getElementById('backToServices');
+  
+  function findAppraisalSection() {
+    return document.getElementById('redyoos_appraisal_form_n8dfCj') || 
+           document.querySelector('[id*="appraisal_form"]') ||
+           document.querySelector('.appraisal-form');
+  }
+  
+  function setupTransition() {
+    const appraisalSection = findAppraisalSection();
+    if (!appraisalSection) {
+      setTimeout(setupTransition, 500);
+      return;
+    }
+    
+    appraisalSection.style.display = 'none';
+    appraisalSection.style.opacity = '0';
+    appraisalSection.style.transform = 'translateY(20px)';
+    appraisalSection.style.transition = 'all 0.5s ease-in-out';
+    
+    if (buybackButton) {
+      buybackButton.addEventListener('click', function(e) {
+        e.preventDefault();
+        buybackButton.classList.add('loading');
+        
+        if (servicesSection && servicesSection.querySelector('.services-section')) {
+          servicesSection.querySelector('.services-section').classList.add('fade-out');
+        }
+        
+        setTimeout(() => {
+          if (servicesSection) servicesSection.style.display = 'none';
+          appraisalSection.style.display = 'block';
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          
+          setTimeout(() => {
+            appraisalSection.style.opacity = '1';
+            appraisalSection.style.transform = 'translateY(0)';
+            if (backButton) backButton.classList.add('show');
+          }, 50);
+        }, 500);
+      });
+    }
+    
+    if (backButton) {
+      backButton.addEventListener('click', function() {
+        appraisalSection.style.opacity = '0';
+        appraisalSection.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+          appraisalSection.style.display = 'none';
+          if (servicesSection) {
+            servicesSection.style.display = 'block';
+            const servicesContent = servicesSection.querySelector('.services-section');
+            if (servicesContent) servicesContent.classList.remove('fade-out');
+          }
+          backButton.classList.remove('show');
+          if (buybackButton) buybackButton.classList.remove('loading');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 500);
+      });
+    }
+  }
+  
+  setupTransition();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializePageTransition);
+} else {
+  initializePageTransition();
+}
+setTimeout(initializePageTransition, 1000);
+</script>
+
+{% comment %} {% schema %}
+{
+  "name": "t:sections.custom-liquid.name",
+  "tag": "section",
+  "class": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "section_title",
+      "label": "Section Title",
+      "default": "Services"
+    },
+    {
+      "type": "header",
+      "content": "Recycle Mail Kit Settings"
+    },
+    {
+      "type": "textarea",
+      "id": "recycle_description",
+      "label": "Recycle Kit Description"
+    },
+    {
+      "type": "url",
+      "id": "recycle_link",
+      "label": "Recycle Kit Link"
+    },
+    {
+      "type": "text",
+      "id": "recycle_button_text",
+      "label": "Recycle Button Text",
+      "default": "Get a Recycle Mail Kit"
+    },
+    {
+      "type": "header",
+      "content": "Buy Back Mail Kit Settings"
+    },
+    {
+      "type": "textarea",
+      "id": "buyback_description",
+      "label": "Buy Back Kit Description"
+    },
+    {
+      "type": "url",
+      "id": "buyback_link",
+      "label": "Buy Back Kit Link"
+    },
+    {
+      "type": "text",
+      "id": "buyback_button_text",
+      "label": "Buy Back Button Text",
+      "default": "Get a Buy Back Mail Kit"
+    },
+    {
+      "type": "select",
+      "id": "color_scheme",
+      "options": [
+        { "value": "accent-1", "label": "t:sections.all.colors.accent_1.label" },
+        { "value": "accent-2", "label": "t:sections.all.colors.accent_2.label" },
+        { "value": "background-1", "label": "t:sections.all.colors.background_1.label" },
+        { "value": "background-2", "label": "t:sections.all.colors.background_2.label" },
+        { "value": "inverse", "label": "t:sections.all.colors.inverse.label" }
+      ],
+      "default": "background-1",
+      "label": "t:sections.all.colors.label"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.all.padding.section_padding_heading"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:sections.all.padding.padding_top",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:sections.all.padding.padding_bottom",
+      "default": 52
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.custom-liquid.presets.name"
+    }
+  ]
+}
+{% endschema %} {% endcomment %}
