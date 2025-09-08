@@ -315,6 +315,11 @@
         "stack_images_on_mobile": true,
         "show_text_below": true
       }
+    },
+    "redyoos_mailkit_section_gitECE": {
+      "type": "redyoos-mailkit-section",
+      "name": "Mailkit Section",
+      "settings": {}
     }
   },
   "order": [
@@ -325,6 +330,7 @@
     "slideshow_dQYb7d",
     "rich_text_8VhxBY",
     "featured_product_F7pNmg",
+    "redyoos_mailkit_section_gitECE",
     "image_banner_cmrmck"
   ]
 }
