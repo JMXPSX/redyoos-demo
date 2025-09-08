@@ -1,3 +1,12 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
 {
   "sections": {
     "image_banner": {
@@ -23,7 +32,6 @@
         "text_m8akKd"
       ],
       "settings": {
-        "image": "shopify://shop_images/Untitled_design_5.png",
         "image_overlay_opacity": 40,
         "image_height": "adapt",
         "desktop_content_position": "bottom-center",
@@ -42,7 +50,6 @@
         "row_TtYQDm": {
           "type": "row",
           "settings": {
-            "image": "shopify://shop_images/Untitled_design_6.png",
             "caption": "Jewelry recycling service",
             "heading": "WE ARE REDYOOS",
             "text": "<p>Jewelry Experts That Created the Solution for Circular Jewelry Recycling Management and Materials</p>",
@@ -152,7 +159,6 @@
         "slide_tJpLQD": {
           "type": "slide",
           "settings": {
-            "image": "shopify://shop_images/Untitled_design_8.png",
             "heading": "JEWELRY RECYCLING",
             "heading_size": "h2",
             "subheading": "Recycle preloved jewelry of all types - gold, silver, gemstones, costume pieces - and contribute to a sustainable future.",
@@ -171,7 +177,6 @@
           "type": "slide",
           "disabled": true,
           "settings": {
-            "image": "shopify://shop_images/Untitled_design_9.png",
             "heading": "CASH IN ON YOUR JEWELRY",
             "heading_size": "h2",
             "subheading": "Easy and profitable way to turn your unwanted jewelry into cash while <em>redyoos-ing </em>environmental impact. Use our custom calculator and get an estimate.",
@@ -282,7 +287,7 @@
         "share_ATk6PV"
       ],
       "settings": {
-        "product": "mail-kit",
+        "product": "free-mail-in-kit",
         "color_scheme": "",
         "secondary_background": false,
         "media_size": "medium",
@@ -299,7 +304,6 @@
     "image_banner_cmrmck": {
       "type": "image-banner",
       "settings": {
-        "image": "shopify://shop_images/Untitled_design_10_6c950db6-b44d-4246-b74d-5cb655c7b22c.png",
         "image_overlay_opacity": 0,
         "image_height": "adapt",
         "desktop_content_position": "middle-center",
