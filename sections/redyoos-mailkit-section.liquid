@@ -234,7 +234,7 @@
 </div>
 
 <script>
-// GraphQL Checkout Redirect Function
+// Cart API Checkout Redirect Function
 async function redirectToRecycleMailKitCheckout() {
   const recycleButton = document.querySelector('.recycle-button');
   
@@ -245,56 +245,44 @@ async function redirectToRecycleMailKitCheckout() {
   }
   
   try {
-    // Note: Replace with actual Storefront Access Token
-    const storefrontAccessToken = '{{ settings.storefront_access_token | default: "your-storefront-access-token" }}';
-    const shopDomain = '{{ shop.permanent_domain }}';
-    
-    const response = await fetch(`https://${shopDomain}/api/2023-07/graphql.json`, {
+    // Use Shopify's Cart API to add product and redirect to checkout
+    const response = await fetch('/cart/add.js', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Shopify-Storefront-Access-Token': storefrontAccessToken,
       },
       body: JSON.stringify({
-        query: `
-          mutation {
-            checkoutCreate(input: {
-              lineItems: [
-                {
-                  variantId: "gid://shopify/ProductVariant/53740731334824",
-                  quantity: 1
-                }
-              ]
-            }) {
-              checkout {
-                webUrl
-              }
-              checkoutUserErrors {
-                field
-                message
-              }
-            }
-          }
-        `
+        items: [{
+          id: 53730621259944, // Recycle Mail Kit Product Variant ID
+          quantity: 1
+        }]
       })
     });
 
-    const result = await response.json();
-    
-    if (result.data && result.data.checkoutCreate && result.data.checkoutCreate.checkout) {
-      const checkoutUrl = result.data.checkoutCreate.checkout.webUrl;
-      window.location.href = checkoutUrl;
-    } else if (result.data && result.data.checkoutCreate && result.data.checkoutCreate.checkoutUserErrors.length > 0) {
-      console.error('Checkout creation errors:', result.data.checkoutCreate.checkoutUserErrors);
-      // Fallback to regular checkout
+    if (response.ok) {
+      // Successfully added to cart, now redirect to checkout
       window.location.href = '/checkout';
     } else {
-      throw new Error('Failed to create checkout session');
+      // If add to cart fails, try the direct product checkout approach
+      window.location.href = '/cart/53730621259944:1';
+      
+      // After a brief delay, redirect to checkout
+      setTimeout(() => {
+        window.location.href = '/checkout';
+      }, 500);
     }
   } catch (error) {
-    console.error('Error creating checkout:', error);
-    // Fallback to regular checkout page
-    window.location.href = '/checkout';
+    console.error('Error adding to cart:', error);
+    // Fallback: try direct cart URL with product
+    try {
+      window.location.href = '/cart/53730621259944:1';
+      setTimeout(() => {
+        window.location.href = '/checkout';
+      }, 500);
+    } catch (fallbackError) {
+      // Final fallback to regular checkout
+      window.location.href = '/checkout';
+    }
   } finally {
     // Remove loading state
     if (recycleButton) {
