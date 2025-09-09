@@ -261,15 +261,51 @@ async function redirectToRecycleMailKitCheckout() {
 
     if (response.ok) {
       // Successfully added to cart, now redirect to cart page
-      window.location.href = '/cart/53740731334824:1';
+      window.location.href = '/cart';
     } else {
-      // If add to cart fails, try the direct cart approach
-      window.location.href = '/cart/53740731334824:1';
+      // If add to cart fails, try adding via form submission then redirect
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/cart/add';
+      form.style.display = 'none';
+      
+      const variantInput = document.createElement('input');
+      variantInput.type = 'hidden';
+      variantInput.name = 'id';
+      variantInput.value = '53740731334824';
+      
+      const quantityInput = document.createElement('input');
+      quantityInput.type = 'hidden';
+      quantityInput.name = 'quantity';
+      quantityInput.value = '1';
+      
+      form.appendChild(variantInput);
+      form.appendChild(quantityInput);
+      document.body.appendChild(form);
+      form.submit();
     }
   } catch (error) {
     console.error('Error adding to cart:', error);
-    // Fallback: try direct cart URL with product
-    window.location.href = '/cart/53740731334824:1';
+    // Final fallback: create form to add product to cart
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/cart/add';
+    form.style.display = 'none';
+    
+    const variantInput = document.createElement('input');
+    variantInput.type = 'hidden';
+    variantInput.name = 'id';
+    variantInput.value = '53740731334824';
+    
+    const quantityInput = document.createElement('input');
+    quantityInput.type = 'hidden';
+    quantityInput.name = 'quantity';
+    quantityInput.value = '1';
+    
+    form.appendChild(variantInput);
+    form.appendChild(quantityInput);
+    document.body.appendChild(form);
+    form.submit();
   } finally {
     // Remove loading state
     if (recycleButton) {
