@@ -261,27 +261,28 @@ async function redirectToRecycleMailKitCheckout() {
 
     if (response.ok) {
       // Successfully added to cart, now redirect to checkout
-      window.location.href = '/checkout';
+      // window.location.href = '/checkout';
+      window.location.href = '/cart/53730621259944:1';
     } else {
       // If add to cart fails, try the direct product checkout approach
-      window.location.href = '/cart/53730621259944:1';
+      // window.location.href = '/cart/53730621259944:1';
       
       // After a brief delay, redirect to checkout
-      setTimeout(() => {
-        window.location.href = '/checkout';
-      }, 500);
+      // setTimeout(() => {
+        // window.location.href = '/checkout';
+      // }, 500);
     }
   } catch (error) {
     console.error('Error adding to cart:', error);
     // Fallback: try direct cart URL with product
     try {
       window.location.href = '/cart/53730621259944:1';
-      setTimeout(() => {
-        window.location.href = '/checkout';
-      }, 500);
+      // setTimeout(() => {
+        // window.location.href = '/checkout';
+      // }, 500);
     } catch (fallbackError) {
       // Final fallback to regular checkout
-      window.location.href = '/checkout';
+      // window.location.href = '/checkout';
     }
   } finally {
     // Remove loading state
