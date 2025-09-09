@@ -234,7 +234,7 @@
 </div>
 
 <script>
-// Cart API Checkout Redirect Function
+// Cart API Function - Clear cart and add Recycle Mail Kit
 async function redirectToRecycleMailKitCheckout() {
   const recycleButton = document.querySelector('.recycle-button');
   
@@ -245,7 +245,15 @@ async function redirectToRecycleMailKitCheckout() {
   }
   
   try {
-    // Use Shopify's Cart API to add product and redirect to checkout
+    // Step 1: Clear the cart first
+    await fetch('/cart/clear.js', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+    
+    // Step 2: Add the Recycle Mail Kit to the now-empty cart
     const response = await fetch('/cart/add.js', {
       method: 'POST',
       headers: {
@@ -260,58 +268,47 @@ async function redirectToRecycleMailKitCheckout() {
     });
 
     if (response.ok) {
-      // Successfully added to cart, now redirect to cart page
+      // Successfully cleared cart and added product, redirect to cart page
       window.location.href = '/cart';
     } else {
-      // If add to cart fails, try adding via form submission then redirect
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = '/cart/add';
-      form.style.display = 'none';
-      
-      const variantInput = document.createElement('input');
-      variantInput.type = 'hidden';
-      variantInput.name = 'id';
-      variantInput.value = '53740731334824';
-      
-      const quantityInput = document.createElement('input');
-      quantityInput.type = 'hidden';
-      quantityInput.name = 'quantity';
-      quantityInput.value = '1';
-      
-      form.appendChild(variantInput);
-      form.appendChild(quantityInput);
-      document.body.appendChild(form);
-      form.submit();
+      // If add to cart fails, try the form submission approach
+      clearCartAndAddViaForm('53740731334824', '1');
     }
   } catch (error) {
-    console.error('Error adding to cart:', error);
-    // Final fallback: create form to add product to cart
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '/cart/add';
-    form.style.display = 'none';
-    
-    const variantInput = document.createElement('input');
-    variantInput.type = 'hidden';
-    variantInput.name = 'id';
-    variantInput.value = '53740731334824';
-    
-    const quantityInput = document.createElement('input');
-    quantityInput.type = 'hidden';
-    quantityInput.name = 'quantity';
-    quantityInput.value = '1';
-    
-    form.appendChild(variantInput);
-    form.appendChild(quantityInput);
-    document.body.appendChild(form);
-    form.submit();
+    console.error('Error clearing cart and adding product:', error);
+    // Final fallback: clear cart and add via form
+    clearCartAndAddViaForm('53740731334824', '1');
   } finally {
     // Remove loading state
     if (recycleButton) {
       recycleButton.classList.remove('loading');
       recycleButton.style.pointerEvents = 'auto';
     }
+  }
+}
+
+// Helper function to clear cart and add product via form submission
+function clearCartAndAddViaForm(variantId, quantity) {
+  try {
+    // Create a form to clear cart and add product
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/cart/update';
+    form.style.display = 'none';
+    
+    // Add hidden input to set quantity of variant to 1 (this effectively clears others and sets this one)
+    const updateInput = document.createElement('input');
+    updateInput.type = 'hidden';
+    updateInput.name = `updates[${variantId}]`;
+    updateInput.value = quantity;
+    
+    form.appendChild(updateInput);
+    document.body.appendChild(form);
+    form.submit();
+  } catch (error) {
+    console.error('Fallback form submission failed:', error);
+    // Ultimate fallback - redirect to product page
+    window.location.href = '/cart';
   }
 }
 
