@@ -1465,5 +1465,20 @@
         "default": "scheme-1"
       }
     ]
+  },
+  {
+    "name": "API Settings",
+    "settings": [
+      {
+        "type": "header",
+        "content": "Shopify Storefront API"
+      },
+      {
+        "type": "text",
+        "id": "storefront_access_token",
+        "label": "Storefront Access Token",
+        "info": "Required for GraphQL checkout functionality. Generate this token in your Shopify admin under Apps > Private Apps or via the Shopify CLI."
+      }
+    ]
   }
 ]
