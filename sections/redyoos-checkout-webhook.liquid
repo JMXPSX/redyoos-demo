@@ -102,17 +102,95 @@ document.addEventListener('DOMContentLoaded', function() {
       const jewelryItems = JSON.parse(jewelryItemsData);
       log('Retrieved jewelryItems from sessionStorage', { count: jewelryItems.length, items: jewelryItems });
 
-      // Prepare webhook payload
-      const payload = {
+      // Generate unique correlation ID for matching with Shopify's orders/create webhook
+      const correlationId = 'redyoos_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      const sessionId = sessionStorage.getItem('redyoos_session_id') || 
+                       'sess_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      
+      // Store session ID for potential reuse
+      sessionStorage.setItem('redyoos_session_id', sessionId);
+      
+      // Store correlation data for potential order matching
+      const correlationData = {
+        correlationId: correlationId,
+        sessionId: sessionId,
         timestamp: new Date().toISOString(),
-        event: 'checkout_initiated',
-        source: 'redyoos_shopify_checkout',
+        jewelryItemsCount: jewelryItems.length,
+        cartTotal: document.querySelector('.totals__total-value')?.textContent?.trim() || 'N/A'
+      };
+      sessionStorage.setItem('redyoos_correlation', JSON.stringify(correlationData));
+      
+      // Prepare webhook payload with correlation identifiers
+      const payload = {
+        // Correlation identifiers for matching with orders/create webhook
+        correlationId: correlationId,
+        sessionId: sessionId,
+        checkoutTimestamp: new Date().toISOString(),
+        
+        // Event information
+        event: 'jewelry_checkout_initiated',
+        source: 'redyoos_shopify_cart',
+        version: '1.0',
+        
+        // Jewelry data
         jewelryItems: jewelryItems,
+        jewelryItemsCount: jewelryItems.length,
+        jewelryItemsSummary: jewelryItems.map(item => 
+          `${item.jewelry_type || 'jewelry'} ($${item.estimated_value_min}-$${item.estimated_value_max})`
+        ).join(', '),
+        
+        // Cart and session metadata for correlation with Shopify order
         metadata: {
+          // Browser/session data
           userAgent: navigator.userAgent,
           url: window.location.href,
+          referrer: document.referrer,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          language: navigator.language,
+          viewport: {
+            width: window.innerWidth,
+            height: window.innerHeight
+          },
+          
+          // Cart correlation data
           cartTotal: document.querySelector('.totals__total-value')?.textContent?.trim() || 'N/A',
-          cartItemCount: document.querySelectorAll('.cart-item').length || 0
+          cartItemCount: document.querySelectorAll('.cart-item').length || 0,
+          
+          // Extract cart line items for correlation
+          cartLineItems: Array.from(document.querySelectorAll('.cart-item')).map(item => {
+            const titleElement = item.querySelector('.cart-item__name');
+            const priceElement = item.querySelector('.price');
+            const quantityElement = item.querySelector('.quantity__input');
+            
+            return {
+              title: titleElement?.textContent?.trim() || 'Unknown Product',
+              price: priceElement?.textContent?.trim() || 'N/A',
+              quantity: quantityElement?.value || '1',
+              // Try to extract product ID from URLs or data attributes
+              productUrl: titleElement?.getAttribute('href') || null
+            };
+          }),
+          
+          // Payment and shipping correlation points
+          discounts: Array.from(document.querySelectorAll('.discounts__discount')).map(discount => 
+            discount.textContent?.trim()
+          ).filter(Boolean),
+          
+          // Cart form data that might help with correlation
+          cartAttributes: (() => {
+            const form = document.querySelector('#cart');
+            if (!form) return {};
+            
+            const attributes = {};
+            const hiddenInputs = form.querySelectorAll('input[name^="attributes"]');
+            hiddenInputs.forEach(input => {
+              const match = input.name.match(/attributes\[(.+)\]/);
+              if (match) {
+                attributes[match[1]] = input.value;
+              }
+            });
+            return attributes;
+          })()
         }
       };
 
