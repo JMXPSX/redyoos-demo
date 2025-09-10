@@ -169,57 +169,20 @@ document.addEventListener('DOMContentLoaded', function() {
     // Mark as enhanced
     checkoutButton.setAttribute('data-redyoos-enhanced', 'true');
     
-    // Add event listener to intercept checkout clicks
-    checkoutButton.addEventListener('click', async function(event) {
-      log('Checkout button clicked - processing jewelryItems webhook');
+    // Add event listener to send webhook without blocking checkout
+    checkoutButton.addEventListener('click', function(event) {
+      log('Checkout button clicked - sending jewelryItems webhook');
       
-      // Prevent default form submission temporarily
-      event.preventDefault();
-      event.stopImmediatePropagation();
+      // Send webhook immediately without blocking the form submission
+      sendJewelryItemsToWebhook().then(success => {
+        log('Webhook sent, checkout will proceed normally');
+      }).catch(error => {
+        log('Webhook error (checkout will still proceed)', error);
+      });
       
-      // Show loading state
-      const originalText = checkoutButton.textContent;
-      checkoutButton.textContent = 'Processing...';
-      checkoutButton.disabled = true;
-      
-      try {
-        // Send jewelryItems to webhook and clear sessionStorage
-        const canProceed = await sendJewelryItemsToWebhook();
-        
-        if (canProceed) {
-          log('Webhook processing complete - continuing with checkout');
-          
-          // Restore button state before proceeding
-          checkoutButton.textContent = originalText;
-          checkoutButton.disabled = false;
-          
-          // Remove our event listener to prevent recursion
-          checkoutButton.removeAttribute('data-redyoos-enhanced');
-          
-          // Continue with normal Shopify checkout process
-          const cartForm = document.querySelector('#cart');
-          if (cartForm) {
-            // Trigger the original form submission
-            cartForm.requestSubmit ? cartForm.requestSubmit() : cartForm.submit();
-          } else {
-            // Fallback: navigate to checkout URL
-            window.location.href = '/checkout';
-          }
-        }
-      } catch (error) {
-        log('Error in checkout webhook process', error);
-        
-        // Restore button and continue with normal checkout
-        checkoutButton.textContent = originalText;
-        checkoutButton.disabled = false;
-        checkoutButton.removeAttribute('data-redyoos-enhanced');
-        
-        const cartForm = document.querySelector('#cart');
-        if (cartForm) {
-          cartForm.requestSubmit ? cartForm.requestSubmit() : cartForm.submit();
-        }
-      }
-    }, { once: false, capture: true }); // Use capture phase and allow multiple calls
+      // Let the normal checkout process continue immediately
+      // Don't prevent default - let Shopify handle the checkout normally
+    }, { capture: true }); // Use capture phase to fire before other handlers
     
     log('Checkout button webhook integration completed');
   }
