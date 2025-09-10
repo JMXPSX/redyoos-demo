@@ -628,12 +628,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
       
-      // Clean jewelryItems for webhook (remove internal processing metadata)
+      // Clean jewelryItems for webhook (remove internal processing metadata AND redundant session_id)
       const cleanedItems = jewelryItems.map(item => {
         const { 
           cart_token, cart_token_attached_timestamp, cart_token_source, 
           checkout_token, checkout_token_attached_timestamp, checkout_token_source,
-          webhook_attempt, 
+          webhook_attempt,
+          session_id, // Remove redundant session_id from individual items
           ...cleanItem 
         } = item;
         return {
