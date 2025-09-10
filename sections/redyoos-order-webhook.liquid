@@ -340,20 +340,15 @@ document.addEventListener('DOMContentLoaded', function() {
       log('Found checkout button, adding interception');
       
       checkoutButton.addEventListener('click', async (event) => {
-        log('Checkout button clicked - setting up delayed webhook processing and checkout token capture');
+        log('Checkout button clicked - storing session data for webhook enrichment');
         
         // Store the current timestamp to track when checkout was initiated
         sessionStorage.setItem('redyoos_checkout_initiated', Date.now().toString());
         
-        // Try to capture checkout token from the redirection process
-        setTimeout(async () => {
-          const checkoutToken = await captureCheckoutTokenFromProcess();
-          if (checkoutToken) {
-            await attachCheckoutTokenToJewelryItems(checkoutToken);
-          }
-        }, 1500); // Give more time for redirect to occur
+        // Store enrichment data immediately for later correlation with order webhook
+        storeSessionDataForWebhookEnrichment();
         
-        // Set up multiple delayed webhook attempts
+        // Set up multiple delayed webhook attempts (for post-checkout enrichment)
         setTimeout(() => processOrderCompletionWebhook(), 3000);  // 3 seconds
         setTimeout(() => processOrderCompletionWebhook(), 7000);  // 7 seconds  
         setTimeout(() => processOrderCompletionWebhook(), 12000); // 12 seconds
@@ -369,17 +364,12 @@ document.addEventListener('DOMContentLoaded', function() {
         log('Found checkout form, adding interception');
         
         form.addEventListener('submit', async (event) => {
-          log('Checkout form submitted - setting up delayed webhook processing and checkout token capture');
+          log('Checkout form submitted - storing session data for webhook enrichment');
           
           sessionStorage.setItem('redyoos_checkout_initiated', Date.now().toString());
           
-          // Try to capture checkout token after form submission
-          setTimeout(async () => {
-            const checkoutToken = await captureCheckoutTokenFromProcess();
-            if (checkoutToken) {
-              await attachCheckoutTokenToJewelryItems(checkoutToken);
-            }
-          }, 2000); // Give more time for redirect processing
+          // Store enrichment data for later correlation
+          storeSessionDataForWebhookEnrichment();
           
           // Multiple delayed attempts
           setTimeout(() => processOrderCompletionWebhook(), 3000);
@@ -404,13 +394,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         sessionStorage.setItem('redyoos_checkout_initiated', Date.now().toString());
         
-        // Try to capture checkout token after button click
-        setTimeout(async () => {
-          const checkoutToken = await captureCheckoutTokenFromProcess();
-          if (checkoutToken) {
-            await attachCheckoutTokenToJewelryItems(checkoutToken);
-          }
-        }, 1500);
+        // Store enrichment data for later correlation
+        storeSessionDataForWebhookEnrichment();
         
         // Staggered webhook attempts
         setTimeout(() => processOrderCompletionWebhook(), 2000);
@@ -603,7 +588,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
       
-      // Handle checkout token priority
+      // Handle checkout token priority - NOTE: checkout_token will be provided by order/create webhook
       if (existingCheckoutToken) {
         log('Using checkout_token already attached to jewelryItems', existingCheckoutToken);
         finalCheckoutToken = existingCheckoutToken;
@@ -611,11 +596,23 @@ document.addEventListener('DOMContentLoaded', function() {
         log('Using newly extracted checkout_token', extractedCheckoutToken);
         finalCheckoutToken = extractedCheckoutToken;
       } else {
-        // Try to get from stored session value
-        const storedCheckoutToken = sessionStorage.getItem('redyoos_checkout_token');
-        if (storedCheckoutToken) {
-          log('Using checkout_token from sessionStorage', storedCheckoutToken);
-          finalCheckoutToken = storedCheckoutToken;
+        // For webhook enrichment approach, checkout_token will be null until order/create webhook provides it
+        log('No checkout_token available yet - will be enriched via order/create webhook');
+        finalCheckoutToken = null;
+      }
+      
+      // Try to retrieve enrichment data stored during checkout initiation
+      let enrichmentData = null;
+      if (finalCartToken) {
+        const enrichmentKey = `redyoos_enrichment_cart_${finalCartToken}`;
+        const storedData = localStorage.getItem(enrichmentKey);
+        if (storedData) {
+          try {
+            enrichmentData = JSON.parse(storedData);
+            log('Retrieved enrichment data for correlation', { key: enrichmentKey });
+          } catch (error) {
+            log('Error parsing enrichment data', error);
+          }
         }
       }
       
@@ -671,7 +668,7 @@ document.addEventListener('DOMContentLoaded', function() {
           `${item.jewelry_type || 'jewelry'} ($${item.estimated_value_min || 'N/A'}-$${item.estimated_value_max || 'N/A'})`
         ).join(', '),
         
-        // Metadata
+        // Metadata (enhanced with enrichment approach)
         metadata: {
           userAgent: navigator.userAgent,
           url: window.location.href,
@@ -680,10 +677,37 @@ document.addEventListener('DOMContentLoaded', function() {
           language: navigator.language,
           viewport: { width: window.innerWidth, height: window.innerHeight },
           pageType: 'checkout_completion',
-          hasTokens: !!(checkoutToken || cartToken),
+          hasTokens: !!(finalCheckoutToken || finalCartToken),
           beaconOnly: beaconOnly,
-          checkoutInitiated: sessionStorage.getItem('redyoos_checkout_initiated')
-        }
+          checkoutInitiated: sessionStorage.getItem('redyoos_checkout_initiated'),
+          
+          // Webhook enrichment approach metadata
+          webhookEnrichmentApproach: true,
+          hasEnrichmentData: !!enrichmentData,
+          enrichmentNote: 'checkout_token will be provided via order/create webhook for correlation',
+          
+          // Include key enrichment data points for correlation
+          ...(enrichmentData ? {
+            checkout_initiated_url: enrichmentData.checkout_initiated_url,
+            checkout_initiated_timestamp: enrichmentData.checkout_initiated_timestamp,
+            session_timestamp: enrichmentData.session_timestamp,
+            cart_context_at_checkout: {
+              cart_total: enrichmentData.cart_total,
+              cart_item_count: enrichmentData.cart_item_count
+            }
+          } : {})
+        },
+        
+        // Include enrichment data for backend correlation (if available)
+        ...(enrichmentData ? {
+          enrichment_session_data: {
+            session_id: enrichmentData.session_id,
+            correlation_id: enrichmentData.correlation_id,
+            jewelry_items_summary: enrichmentData.jewelryItemsSummary,
+            cart_line_items_at_checkout: enrichmentData.cart_line_items,
+            customer_context: enrichmentData.customer_context
+          }
+        } : {})
       };
       
       log('Sending enhanced payload to webhook', payload);
@@ -742,228 +766,151 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // =================================================================
-  // CHECKOUT TOKEN CAPTURE
+  // SESSION DATA STORAGE FOR WEBHOOK ENRICHMENT
   // =================================================================
   
   /**
-   * Intercepts checkout form submission to capture checkout token from response
+   * Stores session data for later correlation with order/create webhook
+   * This data will be used to enrich the webhook payload post-checkout
    */
-  async function interceptCheckoutFormSubmission(form) {
-    return new Promise((resolve) => {
-      const originalSubmit = form.submit;
-      const originalAction = form.action;
-      
-      // Override form submission to capture response
-      form.addEventListener('submit', async (event) => {
-        log('Intercepting checkout form submission to capture checkout token');
-        
-        try {
-          // Don't prevent default - let the form submit normally
-          // But also try to capture the response
-          
-          // Create FormData from the form
-          const formData = new FormData(form);
-          
-          // Try to submit via fetch to capture response (parallel to normal submission)
-          fetch(originalAction || '/cart', {
-            method: 'POST',
-            body: formData,
-            redirect: 'manual' // Don't follow redirects automatically
-          }).then(async (response) => {
-            log('Checkout form submission response received', response.status);
-            
-            // Check for checkout token in response headers
-            const location = response.headers.get('Location');
-            if (location) {
-              log('Checkout redirect location:', location);
-              
-              // Extract checkout token from redirect URL
-              const redirectUrl = new URL(location, window.location.origin);
-              const checkoutToken = redirectUrl.searchParams.get('checkout') || 
-                                   redirectUrl.searchParams.get('token') ||
-                                   redirectUrl.pathname.split('/').pop();
-              
-              if (checkoutToken && checkoutToken.length > 10) {
-                log('Captured checkout_token from redirect URL', checkoutToken);
-                resolve(checkoutToken);
-                return;
-              }
-              
-              // If token not in URL params, try to extract from path
-              const pathSegments = redirectUrl.pathname.split('/');
-              const possibleToken = pathSegments[pathSegments.length - 1];
-              if (possibleToken && possibleToken.length > 10 && !possibleToken.includes('.')) {
-                log('Captured checkout_token from redirect path', possibleToken);
-                resolve(possibleToken);
-                return;
-              }
-            }
-            
-            // If redirect doesn't contain token, try to parse response body
-            if (response.status === 302 || response.status === 303) {
-              // This is a redirect response, the token should be in the location header
-              log('Checkout redirect detected but no token found in location header');
-            }
-            
-            resolve(null);
-          }).catch(error => {
-            log('Error intercepting checkout form response', error);
-            resolve(null);
-          });
-          
-        } catch (error) {
-          log('Error in checkout form interception', error);
-          resolve(null);
-        }
-      }, { once: true }); // Only intercept once
-    });
-  }
-  
-  /**
-   * Captures checkout token by intercepting the checkout process
-   */
-  async function captureCheckoutTokenFromProcess() {
-    let checkoutToken = null;
-    
-    // Method 1: Extract from current URL (if we're already on checkout page)
-    const urlParams = new URLSearchParams(window.location.search);
-    const pathSegments = window.location.pathname.split('/');
-    
-    if (urlParams.has('checkout')) {
-      checkoutToken = urlParams.get('checkout');
-      log('Captured checkout_token from URL param "checkout"', checkoutToken);
-    } else if (urlParams.has('token')) {
-      checkoutToken = urlParams.get('token');
-      log('Captured checkout_token from URL param "token"', checkoutToken);
-    } else if (window.location.pathname.includes('/checkouts/')) {
-      // Extract token from checkout URL path like /checkouts/TOKEN_HERE
-      const tokenSegment = pathSegments[pathSegments.indexOf('checkouts') + 1];
-      if (tokenSegment && tokenSegment.length > 10) {
-        checkoutToken = tokenSegment;
-        log('Captured checkout_token from checkout URL path', checkoutToken);
-      }
-    }
-    
-    // Method 2: Try to get from Shopify checkout object (if available)
-    if (!checkoutToken && typeof Shopify !== 'undefined' && Shopify.checkout && Shopify.checkout.token) {
-      checkoutToken = Shopify.checkout.token;
-      log('Captured checkout_token from Shopify.checkout', checkoutToken);
-    }
-    
-    // Method 3: Look for checkout forms and intercept their submission
-    if (!checkoutToken) {
-      const checkoutForms = document.querySelectorAll('form[action*="cart"], form[action*="checkout"], form#cart');
-      
-      for (const form of checkoutForms) {
-        log('Setting up checkout form interception for token capture');
-        
-        // Set up interception for this form
-        const token = await interceptCheckoutFormSubmission(form);
-        if (token) {
-          checkoutToken = token;
-          break;
-        }
-      }
-    }
-    
-    return checkoutToken;
-  }
-  
-  /**
-   * Attaches checkout token to jewelryItems when captured
-   */
-  async function attachCheckoutTokenToJewelryItems(checkoutToken) {
-    if (!checkoutToken) {
-      log('No checkout token provided to attach');
-      return;
-    }
-    
+  function storeSessionDataForWebhookEnrichment() {
     const jewelryItemsData = sessionStorage.getItem('jewelryItems');
     if (!jewelryItemsData) {
-      log('No jewelryItems found to attach checkout token to');
+      log('No jewelryItems found to store for webhook enrichment');
       return;
     }
     
     try {
       const jewelryItems = JSON.parse(jewelryItemsData);
+      const cartToken = sessionStorage.getItem('redyoos_cart_token') || 
+                       localStorage.getItem('cartToken') || 
+                       (typeof Shopify !== 'undefined' && Shopify.cart && Shopify.cart.token);
       
-      // Check if items already have this checkout token
-      const needsUpdate = jewelryItems.some(item => 
-        !item.checkout_token || item.checkout_token !== checkoutToken
-      );
+      // Create enrichment data structure
+      const enrichmentData = {
+        // Primary correlation keys
+        cart_token: cartToken,
+        session_id: sessionStorage.getItem('redyoos_session_id'),
+        correlation_id: sessionStorage.getItem('redyoos_correlation_id'),
+        
+        // Jewelry items data
+        jewelryItems: jewelryItems,
+        jewelryItemsCount: jewelryItems.length,
+        jewelryItemsSummary: jewelryItems.map(item => 
+          `${item.jewelry_type || 'jewelry'} ($${item.estimated_value_min || 'N/A'}-$${item.estimated_value_max || 'N/A'})`
+        ).join(', '),
+        
+        // Session metadata for correlation
+        checkout_initiated_timestamp: sessionStorage.getItem('redyoos_checkout_initiated'),
+        checkout_initiated_url: window.location.href,
+        user_agent: navigator.userAgent,
+        session_timestamp: new Date().toISOString(),
+        
+        // Cart context for correlation
+        cart_line_items: Array.from(document.querySelectorAll('.cart-item')).map(item => {
+          const titleElement = item.querySelector('.cart-item__name');
+          const priceElement = item.querySelector('.price');
+          const quantityElement = item.querySelector('.quantity__input');
+          
+          return {
+            title: titleElement?.textContent?.trim() || 'Unknown Product',
+            price: priceElement?.textContent?.trim() || 'N/A',
+            quantity: quantityElement?.value || '1',
+            productUrl: titleElement?.getAttribute('href') || null
+          };
+        }),
+        
+        // Additional correlation points
+        cart_total: document.querySelector('.totals__total-value')?.textContent?.trim() || 'N/A',
+        cart_item_count: document.querySelectorAll('.cart-item').length || 0,
+        customer_context: {
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          language: navigator.language,
+          viewport: { width: window.innerWidth, height: window.innerHeight }
+        }
+      };
       
-      if (needsUpdate) {
-        const updatedItems = jewelryItems.map(item => ({
-          ...item,
-          checkout_token: checkoutToken,
-          checkout_token_attached_timestamp: new Date().toISOString(),
-          checkout_token_source: 'checkout_initiation'
-        }));
-        
-        sessionStorage.setItem('jewelryItems', JSON.stringify(updatedItems));
-        sessionStorage.setItem('redyoos_checkout_token', checkoutToken);
-        
-        log('Successfully attached checkout_token to jewelryItems', {
-          checkoutToken: checkoutToken,
-          itemCount: updatedItems.length
-        });
-      } else {
-        log('JewelryItems already have current checkout_token, no update needed');
+      // Store enrichment data with multiple correlation keys for webhook matching
+      const storageKeys = [];
+      
+      if (cartToken) {
+        const cartKey = `redyoos_enrichment_cart_${cartToken}`;
+        localStorage.setItem(cartKey, JSON.stringify(enrichmentData));
+        storageKeys.push(cartKey);
+        log('Stored enrichment data with cart_token key', cartKey);
       }
+      
+      if (enrichmentData.session_id) {
+        const sessionKey = `redyoos_enrichment_session_${enrichmentData.session_id}`;
+        localStorage.setItem(sessionKey, JSON.stringify(enrichmentData));
+        storageKeys.push(sessionKey);
+        log('Stored enrichment data with session_id key', sessionKey);
+      }
+      
+      if (enrichmentData.correlation_id) {
+        const corrKey = `redyoos_enrichment_corr_${enrichmentData.correlation_id}`;
+        localStorage.setItem(corrKey, JSON.stringify(enrichmentData));
+        storageKeys.push(corrKey);
+        log('Stored enrichment data with correlation_id key', corrKey);
+      }
+      
+      // Store timestamp-based key as fallback
+      const timestampKey = `redyoos_enrichment_${Date.now()}`;
+      localStorage.setItem(timestampKey, JSON.stringify({
+        ...enrichmentData,
+        storage_keys: storageKeys
+      }));
+      
+      log('Successfully stored session data for webhook enrichment', {
+        keys: storageKeys.length + 1,
+        jewelryItemsCount: jewelryItems.length,
+        hasCartToken: !!cartToken
+      });
+      
+      // Clean up old enrichment data (keep only last 10 entries)
+      cleanupOldEnrichmentData();
+      
     } catch (error) {
-      log('Error attaching checkout token to jewelryItems', error);
+      log('Error storing session data for webhook enrichment', error);
     }
   }
   
   /**
-   * Monitors for checkout token availability and captures it
+   * Cleans up old enrichment data to prevent localStorage bloat
    */
-  function monitorCheckoutTokenCapture() {
-    // Check periodically if we're on checkout page for token
-    const checkoutMonitor = setInterval(async () => {
-      if (window.location.pathname.includes('/checkout') || 
-          window.location.pathname.includes('/checkouts') ||
-          window.location.search.includes('checkout') ||
-          window.location.search.includes('token')) {
-        
-        const checkoutToken = await captureCheckoutTokenFromProcess();
-        if (checkoutToken) {
-          await attachCheckoutTokenToJewelryItems(checkoutToken);
-          clearInterval(checkoutMonitor); // Stop monitoring once captured
+  function cleanupOldEnrichmentData() {
+    try {
+      const enrichmentKeys = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('redyoos_enrichment_')) {
+          enrichmentKeys.push(key);
         }
       }
-    }, 3000); // Check every 3 seconds
-    
-    // Stop monitoring after 5 minutes
-    setTimeout(() => clearInterval(checkoutMonitor), 300000);
-    
-    // Listen for URL changes that might indicate checkout navigation
-    let lastUrl = window.location.href;
-    const urlMonitor = setInterval(async () => {
-      if (window.location.href !== lastUrl) {
-        const newUrl = window.location.href;
-        log('URL changed, checking for checkout token', { from: lastUrl, to: newUrl });
-        
-        if (newUrl.includes('/checkout') || 
-            newUrl.includes('/checkouts') ||
-            newUrl.includes('checkout') ||
-            newUrl.includes('token=')) {
-          log('Detected navigation to checkout-related page, attempting token capture');
-          
-          // Give a moment for the page to load
-          setTimeout(async () => {
-            const checkoutToken = await captureCheckoutTokenFromProcess();
-            if (checkoutToken) {
-              await attachCheckoutTokenToJewelryItems(checkoutToken);
-              clearInterval(urlMonitor);
-            }
-          }, 1000);
+      
+      // Sort by timestamp (newer first)
+      enrichmentKeys.sort((a, b) => {
+        const timestampA = a.includes('redyoos_enrichment_cart_') ? 0 : 
+                          a.includes('redyoos_enrichment_session_') ? 0 :
+                          a.includes('redyoos_enrichment_corr_') ? 0 :
+                          parseInt(a.split('_').pop()) || 0;
+        const timestampB = b.includes('redyoos_enrichment_cart_') ? 0 : 
+                          b.includes('redyoos_enrichment_session_') ? 0 :
+                          b.includes('redyoos_enrichment_corr_') ? 0 :
+                          parseInt(b.split('_').pop()) || 0;
+        return timestampB - timestampA;
+      });
+      
+      // Remove old entries (keep latest 20)
+      if (enrichmentKeys.length > 20) {
+        for (let i = 20; i < enrichmentKeys.length; i++) {
+          localStorage.removeItem(enrichmentKeys[i]);
         }
-        lastUrl = newUrl;
+        log('Cleaned up old enrichment data', { removed: enrichmentKeys.length - 20 });
       }
-    }, 1000);
-    
-    setTimeout(() => clearInterval(urlMonitor), 300000);
+    } catch (error) {
+      log('Error cleaning up enrichment data', error);
+    }
   }
 
   // =================================================================
@@ -1213,17 +1160,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // First, try to attach cart token if on cart page
     await attachCartTokenToJewelryItems();
     
-    // Try to capture checkout token if we're already on checkout page
-    const checkoutToken = await captureCheckoutTokenFromProcess();
-    if (checkoutToken) {
-      await attachCheckoutTokenToJewelryItems(checkoutToken);
+    // Store enrichment data if we have jewelryItems
+    const jewelryItemsData = sessionStorage.getItem('jewelryItems');
+    if (jewelryItemsData) {
+      storeSessionDataForWebhookEnrichment();
     }
     
     // Start monitoring cart token changes
     monitorCartTokenChanges();
-    
-    // Start monitoring checkout token capture
-    monitorCheckoutTokenCapture();
     
     // Start detecting order completion
     detectOrderCompletion();
