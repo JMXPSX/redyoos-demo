@@ -109,7 +109,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
       
-      // Method 2: Extract from meta tags (common Shopify pattern)
+      // Method 2: Extract from localStorage (most common location for cart token)
+      if (!cartToken && localStorage.getItem('cartToken')) {
+        cartToken = localStorage.getItem('cartToken');
+        log('Extracted cart_token from localStorage.cartToken', cartToken);
+      }
+      
+      if (!cartToken && localStorage.getItem('cart_token')) {
+        cartToken = localStorage.getItem('cart_token');
+        log('Extracted cart_token from localStorage.cart_token', cartToken);
+      }
+      
+      // Method 3: Extract from meta tags (common Shopify pattern)
       if (!checkoutToken) {
         const checkoutMeta = document.querySelector('meta[name="shopify-checkout-token"]');
         if (checkoutMeta) {
@@ -126,7 +137,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
       
-      // Method 3: Extract from URL parameters (checkout pages often have tokens in URL)
+      // Method 4: Extract from URL parameters (checkout pages often have tokens in URL)
       if (!checkoutToken || !cartToken) {
         const urlParams = new URLSearchParams(window.location.search);
         if (!checkoutToken && urlParams.has('checkout_token')) {
@@ -139,7 +150,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
       
-      // Method 4: Extract from page JSON-LD or script tags
+      // Method 5: Extract from page JSON-LD or script tags
       if (!checkoutToken || !cartToken) {
         const scriptTags = document.querySelectorAll('script[type="application/json"]');
         scriptTags.forEach(script => {
@@ -709,13 +720,25 @@ document.addEventListener('DOMContentLoaded', function() {
     // Extract cart token using multiple methods
     let cartToken = null;
     
-    // Method 1: From Shopify global object
-    if (typeof Shopify !== 'undefined' && Shopify.cart && Shopify.cart.token) {
+    // Method 1: From localStorage.cartToken (most common location)
+    if (localStorage.getItem('cartToken')) {
+      cartToken = localStorage.getItem('cartToken');
+      log('Extracted cart_token from localStorage.cartToken on cart page', cartToken);
+    }
+    
+    // Method 2: From localStorage with different key variations
+    if (!cartToken && localStorage.getItem('cart_token')) {
+      cartToken = localStorage.getItem('cart_token');
+      log('Extracted cart_token from localStorage.cart_token on cart page', cartToken);
+    }
+    
+    // Method 3: From Shopify global object
+    if (!cartToken && typeof Shopify !== 'undefined' && Shopify.cart && Shopify.cart.token) {
       cartToken = Shopify.cart.token;
       log('Extracted cart_token from Shopify.cart on cart page', cartToken);
     }
     
-    // Method 2: From meta tags
+    // Method 4: From meta tags
     if (!cartToken) {
       const cartMeta = document.querySelector('meta[name="shopify-cart-token"]');
       if (cartMeta) {
@@ -724,7 +747,7 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
     
-    // Method 3: From form data attributes
+    // Method 5: From form data attributes
     if (!cartToken) {
       const cartForm = document.querySelector('#cart, .cart-form');
       if (cartForm) {
@@ -742,10 +765,16 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
     
-    // Method 4: From window.theme or other theme globals
+    // Method 6: From window.theme or other theme globals
     if (!cartToken && typeof window.theme !== 'undefined' && window.theme.cart_token) {
       cartToken = window.theme.cart_token;
       log('Extracted cart_token from window.theme on cart page', cartToken);
+    }
+    
+    // Method 7: From sessionStorage as fallback
+    if (!cartToken && sessionStorage.getItem('cartToken')) {
+      cartToken = sessionStorage.getItem('cartToken');
+      log('Extracted cart_token from sessionStorage.cartToken on cart page', cartToken);
     }
     
     if (cartToken) {
@@ -791,9 +820,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const cartTokenMonitor = setInterval(() => {
       let currentCartToken = null;
       
-      // Try to get current cart token
-      if (typeof Shopify !== 'undefined' && Shopify.cart && Shopify.cart.token) {
+      // Try to get current cart token from multiple sources
+      // Priority: localStorage > Shopify global > sessionStorage
+      if (localStorage.getItem('cartToken')) {
+        currentCartToken = localStorage.getItem('cartToken');
+      } else if (localStorage.getItem('cart_token')) {
+        currentCartToken = localStorage.getItem('cart_token');
+      } else if (typeof Shopify !== 'undefined' && Shopify.cart && Shopify.cart.token) {
         currentCartToken = Shopify.cart.token;
+      } else if (sessionStorage.getItem('cartToken')) {
+        currentCartToken = sessionStorage.getItem('cartToken');
       }
       
       // If cart token changed, update jewelryItems
@@ -825,6 +861,16 @@ document.addEventListener('DOMContentLoaded', function() {
         lastCartToken = currentCartToken;
       }
     }, 3000); // Check every 3 seconds
+    
+    // Also listen for localStorage changes (storage events)
+    window.addEventListener('storage', (event) => {
+      if (event.key === 'cartToken' || event.key === 'cart_token') {
+        log('Cart token changed in localStorage, updating jewelryItems');
+        setTimeout(() => {
+          attachCartTokenToJewelryItems(); // Re-run attachment with new token
+        }, 500);
+      }
+    });
     
     // Stop monitoring after 10 minutes to prevent endless checking
     setTimeout(() => clearInterval(cartTokenMonitor), 600000);
