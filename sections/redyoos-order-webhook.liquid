@@ -63,6 +63,16 @@
 <!-- REDYOOS ORDER WEBHOOK HANDLER -->
 <!-- This section is invisible and only contains JavaScript functionality -->
 
+<!-- Inject Shopify cart data directly from Liquid -->
+<script id="shopify-cart-data" type="application/json">
+{
+  "cart_token": {{ cart.token | json }},
+  "cart_id": {{ cart.id | json }},
+  "cart_item_count": {{ cart.item_count | json }},
+  "cart_total_price": {{ cart.total_price | json }}
+}
+</script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   // =================================================================
@@ -688,7 +698,7 @@ document.addEventListener('DOMContentLoaded', function() {
   /**
    * Attaches cart_token to existing jewelryItems when on cart page
    */
-  function attachCartTokenToJewelryItems() {
+  async function attachCartTokenToJewelryItems() {
     // Check if we're on the cart page
     const isCartPage = window.location.pathname.includes('/cart') || 
                       document.querySelector('.cart') ||
@@ -717,28 +727,69 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
     
-    // Extract cart token using multiple methods
+    // Extract cart token using multiple methods with emphasis on Shopify's official methods
     let cartToken = null;
     
-    // Method 1: From localStorage.cartToken (most common location)
-    if (localStorage.getItem('cartToken')) {
-      cartToken = localStorage.getItem('cartToken');
-      log('Extracted cart_token from localStorage.cartToken on cart page', cartToken);
+    // Method 1: From Liquid-generated cart data (most reliable and immediate)
+    try {
+      const cartDataScript = document.getElementById('shopify-cart-data');
+      if (cartDataScript) {
+        const cartData = JSON.parse(cartDataScript.textContent);
+        if (cartData.cart_token) {
+          cartToken = cartData.cart_token;
+          log('Extracted cart_token from Liquid cart data on cart page', cartToken);
+        }
+      }
+    } catch (error) {
+      log('Error parsing cart token from Liquid data', error);
     }
     
-    // Method 2: From localStorage with different key variations
-    if (!cartToken && localStorage.getItem('cart_token')) {
-      cartToken = localStorage.getItem('cart_token');
-      log('Extracted cart_token from localStorage.cart_token on cart page', cartToken);
+    // Method 2: Fetch from Shopify cart.js endpoint (if Liquid data failed)
+    if (!cartToken) {
+      try {
+        const cartResponse = await fetch('/cart.js');
+        if (cartResponse.ok) {
+          const cartData = await cartResponse.json();
+          if (cartData.token) {
+            cartToken = cartData.token;
+            log('Extracted cart_token from /cart.js endpoint on cart page', cartToken);
+          }
+        }
+      } catch (error) {
+        log('Error fetching cart token from /cart.js endpoint', error);
+      }
     }
     
-    // Method 3: From Shopify global object
+    // Method 3: From Shopify global object (if cart.js fetch failed)
     if (!cartToken && typeof Shopify !== 'undefined' && Shopify.cart && Shopify.cart.token) {
       cartToken = Shopify.cart.token;
       log('Extracted cart_token from Shopify.cart on cart page', cartToken);
     }
     
-    // Method 4: From meta tags
+    // Method 4: From window globals that may contain cart data
+    if (!cartToken && typeof window.ShopifyAnalytics !== 'undefined' && window.ShopifyAnalytics.meta && window.ShopifyAnalytics.meta.cart && window.ShopifyAnalytics.meta.cart.token) {
+      cartToken = window.ShopifyAnalytics.meta.cart.token;
+      log('Extracted cart_token from ShopifyAnalytics.meta.cart on cart page', cartToken);
+    }
+    
+    // Method 5: From cart object in window (theme-specific)
+    if (!cartToken && typeof window.cart !== 'undefined' && window.cart.token) {
+      cartToken = window.cart.token;
+      log('Extracted cart_token from window.cart on cart page', cartToken);
+    }
+    
+    // Method 6: From localStorage (fallback)
+    if (!cartToken && localStorage.getItem('cartToken')) {
+      cartToken = localStorage.getItem('cartToken');
+      log('Extracted cart_token from localStorage.cartToken on cart page', cartToken);
+    }
+    
+    if (!cartToken && localStorage.getItem('cart_token')) {
+      cartToken = localStorage.getItem('cart_token');
+      log('Extracted cart_token from localStorage.cart_token on cart page', cartToken);
+    }
+    
+    // Method 8: From meta tags
     if (!cartToken) {
       const cartMeta = document.querySelector('meta[name="shopify-cart-token"]');
       if (cartMeta) {
@@ -747,7 +798,7 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
     
-    // Method 5: From form data attributes
+    // Method 9: From form data attributes
     if (!cartToken) {
       const cartForm = document.querySelector('#cart, .cart-form');
       if (cartForm) {
@@ -765,13 +816,13 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
     
-    // Method 6: From window.theme or other theme globals
+    // Method 10: From window.theme or other theme globals
     if (!cartToken && typeof window.theme !== 'undefined' && window.theme.cart_token) {
       cartToken = window.theme.cart_token;
       log('Extracted cart_token from window.theme on cart page', cartToken);
     }
     
-    // Method 7: From sessionStorage as fallback
+    // Method 11: From sessionStorage as final fallback
     if (!cartToken && sessionStorage.getItem('cartToken')) {
       cartToken = sessionStorage.getItem('cartToken');
       log('Extracted cart_token from sessionStorage.cartToken on cart page', cartToken);
@@ -866,8 +917,8 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('storage', (event) => {
       if (event.key === 'cartToken' || event.key === 'cart_token') {
         log('Cart token changed in localStorage, updating jewelryItems');
-        setTimeout(() => {
-          attachCartTokenToJewelryItems(); // Re-run attachment with new token
+        setTimeout(async () => {
+          await attachCartTokenToJewelryItems(); // Re-run attachment with new token
         }, 500);
       }
     });
@@ -881,11 +932,11 @@ document.addEventListener('DOMContentLoaded', function() {
   // =================================================================
   
   // Initialize order completion detection
-  function initializeOrderCompletionWebhook() {
+  async function initializeOrderCompletionWebhook() {
     log('Initializing Redyoos Order Webhook');
     
     // First, try to attach cart token if on cart page
-    attachCartTokenToJewelryItems();
+    await attachCartTokenToJewelryItems();
     
     // Start monitoring cart token changes
     monitorCartTokenChanges();
@@ -905,16 +956,16 @@ document.addEventListener('DOMContentLoaded', function() {
         processOrderCompletionWebhook();
       } else {
         // If not on completion page, try to attach cart token again with delay
-        setTimeout(() => {
-          attachCartTokenToJewelryItems();
+        setTimeout(async () => {
+          await attachCartTokenToJewelryItems();
         }, 2000);
       }
     }, 500);
     
     // Re-attach cart token when navigating to cart page
     window.addEventListener('popstate', () => {
-      setTimeout(() => {
-        attachCartTokenToJewelryItems();
+      setTimeout(async () => {
+        await attachCartTokenToJewelryItems();
       }, 1000);
     });
     
@@ -924,8 +975,8 @@ document.addEventListener('DOMContentLoaded', function() {
       if (window.location.href !== lastUrl) {
         if (window.location.href.includes('/cart')) {
           log('Navigated to cart page, attaching cart token');
-          setTimeout(() => {
-            attachCartTokenToJewelryItems();
+          setTimeout(async () => {
+            await attachCartTokenToJewelryItems();
           }, 1000);
         }
         lastUrl = window.location.href;
