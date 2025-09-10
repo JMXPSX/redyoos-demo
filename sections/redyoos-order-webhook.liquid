@@ -339,11 +339,19 @@ document.addEventListener('DOMContentLoaded', function() {
     if (checkoutButton) {
       log('Found checkout button, adding interception');
       
-      checkoutButton.addEventListener('click', (event) => {
-        log('Checkout button clicked - setting up delayed webhook processing');
+      checkoutButton.addEventListener('click', async (event) => {
+        log('Checkout button clicked - setting up delayed webhook processing and checkout token capture');
         
         // Store the current timestamp to track when checkout was initiated
         sessionStorage.setItem('redyoos_checkout_initiated', Date.now().toString());
+        
+        // Try to capture checkout token immediately (might not be available yet)
+        setTimeout(async () => {
+          const checkoutToken = await captureCheckoutToken();
+          if (checkoutToken) {
+            await attachCheckoutTokenToJewelryItems(checkoutToken);
+          }
+        }, 1000);
         
         // Set up multiple delayed webhook attempts
         setTimeout(() => processOrderCompletionWebhook(), 3000);  // 3 seconds
@@ -360,10 +368,18 @@ document.addEventListener('DOMContentLoaded', function() {
       if (form.action.includes('/checkout') || form.action.includes('/cart')) {
         log('Found checkout form, adding interception');
         
-        form.addEventListener('submit', (event) => {
-          log('Checkout form submitted - setting up delayed webhook processing');
+        form.addEventListener('submit', async (event) => {
+          log('Checkout form submitted - setting up delayed webhook processing and checkout token capture');
           
           sessionStorage.setItem('redyoos_checkout_initiated', Date.now().toString());
+          
+          // Try to capture checkout token after form submission
+          setTimeout(async () => {
+            const checkoutToken = await captureCheckoutToken();
+            if (checkoutToken) {
+              await attachCheckoutTokenToJewelryItems(checkoutToken);
+            }
+          }, 1500);
           
           // Multiple delayed attempts
           setTimeout(() => processOrderCompletionWebhook(), 3000);
@@ -375,7 +391,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Method 3: Watch for any button clicks that might trigger checkout
-    document.addEventListener('click', (event) => {
+    document.addEventListener('click', async (event) => {
       const target = event.target;
       if (target && (
         target.textContent?.toLowerCase().includes('checkout') ||
@@ -387,6 +403,14 @@ document.addEventListener('DOMContentLoaded', function() {
         log('Detected checkout-related button click', target);
         
         sessionStorage.setItem('redyoos_checkout_initiated', Date.now().toString());
+        
+        // Try to capture checkout token after button click
+        setTimeout(async () => {
+          const checkoutToken = await captureCheckoutToken();
+          if (checkoutToken) {
+            await attachCheckoutTokenToJewelryItems(checkoutToken);
+          }
+        }, 1000);
         
         // Staggered webhook attempts
         setTimeout(() => processOrderCompletionWebhook(), 2000);
@@ -554,12 +578,16 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       
       // Extract tokens from the order/checkout data
-      const { checkoutToken, cartToken: extractedCartToken } = extractOrderTokens();
+      const { checkoutToken: extractedCheckoutToken, cartToken: extractedCartToken } = extractOrderTokens();
       
-      // Check if jewelry items already have a cart_token attached
+      // Check if jewelry items already have tokens attached
       let finalCartToken = extractedCartToken;
-      const existingCartToken = jewelryItems[0]?.cart_token;
+      let finalCheckoutToken = extractedCheckoutToken;
       
+      const existingCartToken = jewelryItems[0]?.cart_token;
+      const existingCheckoutToken = jewelryItems[0]?.checkout_token;
+      
+      // Handle cart token priority
       if (existingCartToken) {
         log('Using cart_token already attached to jewelryItems', existingCartToken);
         finalCartToken = existingCartToken;
@@ -575,9 +603,30 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
       
+      // Handle checkout token priority
+      if (existingCheckoutToken) {
+        log('Using checkout_token already attached to jewelryItems', existingCheckoutToken);
+        finalCheckoutToken = existingCheckoutToken;
+      } else if (extractedCheckoutToken) {
+        log('Using newly extracted checkout_token', extractedCheckoutToken);
+        finalCheckoutToken = extractedCheckoutToken;
+      } else {
+        // Try to get from stored session value
+        const storedCheckoutToken = sessionStorage.getItem('redyoos_checkout_token');
+        if (storedCheckoutToken) {
+          log('Using checkout_token from sessionStorage', storedCheckoutToken);
+          finalCheckoutToken = storedCheckoutToken;
+        }
+      }
+      
       // Clean jewelryItems for webhook (remove internal processing metadata)
       const cleanedItems = jewelryItems.map(item => {
-        const { cart_token, cart_token_attached_timestamp, cart_token_source, webhook_attempt, ...cleanItem } = item;
+        const { 
+          cart_token, cart_token_attached_timestamp, cart_token_source, 
+          checkout_token, checkout_token_attached_timestamp, checkout_token_source,
+          webhook_attempt, 
+          ...cleanItem 
+        } = item;
         return {
           ...cleanItem,
           webhook_attempt: Date.now() // Only keep processing metadata
@@ -586,8 +635,9 @@ document.addEventListener('DOMContentLoaded', function() {
       
       log('Prepared jewelryItems for webhook', { 
         itemCount: cleanedItems.length,
-        hasCheckoutToken: !!checkoutToken,
+        hasCheckoutToken: !!finalCheckoutToken,
         hasCartToken: !!finalCartToken,
+        checkoutTokenSource: existingCheckoutToken ? 'jewelry_items' : (extractedCheckoutToken ? 'extraction' : 'session_storage'),
         cartTokenSource: existingCartToken ? 'jewelry_items' : (extractedCartToken ? 'extraction' : 'session_storage')
       });
       
@@ -604,7 +654,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Top-level identifiers and tokens
         correlationId: correlationId,
         sessionId: sessionId,
-        checkout_token: checkoutToken || null,
+        checkout_token: finalCheckoutToken || null,
         cart_token: finalCartToken || null,
         
         // Event information
@@ -691,6 +741,170 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   
+  // =================================================================
+  // CHECKOUT TOKEN CAPTURE
+  // =================================================================
+  
+  /**
+   * Captures checkout token during checkout initiation and redirection
+   */
+  async function captureCheckoutToken() {
+    let checkoutToken = null;
+    
+    // Method 1: Extract from current URL (if we're on checkout page)
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('checkout_token')) {
+      checkoutToken = urlParams.get('checkout_token');
+      log('Captured checkout_token from URL params', checkoutToken);
+    }
+    
+    // Method 2: Check for checkout token in URL hash
+    if (!checkoutToken && window.location.hash.includes('checkout_token=')) {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      checkoutToken = hashParams.get('checkout_token');
+      log('Captured checkout_token from URL hash', checkoutToken);
+    }
+    
+    // Method 3: Try to get from Shopify checkout object (if available)
+    if (!checkoutToken && typeof Shopify !== 'undefined' && Shopify.checkout && Shopify.checkout.token) {
+      checkoutToken = Shopify.checkout.token;
+      log('Captured checkout_token from Shopify.checkout', checkoutToken);
+    }
+    
+    // Method 4: Listen for checkout initiation and capture from redirect
+    if (!checkoutToken && window.location.pathname.includes('/checkout')) {
+      // Try to fetch checkout data if on checkout page
+      try {
+        const checkoutResponse = await fetch(window.location.href, {
+          method: 'GET',
+          credentials: 'same-origin'
+        });
+        
+        if (checkoutResponse.ok) {
+          const checkoutHtml = await checkoutResponse.text();
+          // Parse HTML to find checkout token in scripts or meta tags
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(checkoutHtml, 'text/html');
+          
+          // Look for checkout token in script tags
+          const scripts = doc.querySelectorAll('script');
+          for (const script of scripts) {
+            const scriptContent = script.textContent || script.innerText;
+            if (scriptContent.includes('checkout') && scriptContent.includes('token')) {
+              const tokenMatch = scriptContent.match(/["']?token["']?\s*:\s*["']([^"']+)["']/);
+              if (tokenMatch) {
+                checkoutToken = tokenMatch[1];
+                log('Captured checkout_token from checkout page script', checkoutToken);
+                break;
+              }
+            }
+          }
+          
+          // Look for checkout token in meta tags
+          if (!checkoutToken) {
+            const checkoutMeta = doc.querySelector('meta[name="shopify-checkout-token"], meta[property="shopify:checkout_token"]');
+            if (checkoutMeta) {
+              checkoutToken = checkoutMeta.getAttribute('content');
+              log('Captured checkout_token from checkout page meta tag', checkoutToken);
+            }
+          }
+        }
+      } catch (error) {
+        log('Error fetching checkout page for token extraction', error);
+      }
+    }
+    
+    return checkoutToken;
+  }
+  
+  /**
+   * Attaches checkout token to jewelryItems when captured
+   */
+  async function attachCheckoutTokenToJewelryItems(checkoutToken) {
+    if (!checkoutToken) {
+      log('No checkout token provided to attach');
+      return;
+    }
+    
+    const jewelryItemsData = sessionStorage.getItem('jewelryItems');
+    if (!jewelryItemsData) {
+      log('No jewelryItems found to attach checkout token to');
+      return;
+    }
+    
+    try {
+      const jewelryItems = JSON.parse(jewelryItemsData);
+      
+      // Check if items already have this checkout token
+      const needsUpdate = jewelryItems.some(item => 
+        !item.checkout_token || item.checkout_token !== checkoutToken
+      );
+      
+      if (needsUpdate) {
+        const updatedItems = jewelryItems.map(item => ({
+          ...item,
+          checkout_token: checkoutToken,
+          checkout_token_attached_timestamp: new Date().toISOString(),
+          checkout_token_source: 'checkout_initiation'
+        }));
+        
+        sessionStorage.setItem('jewelryItems', JSON.stringify(updatedItems));
+        sessionStorage.setItem('redyoos_checkout_token', checkoutToken);
+        
+        log('Successfully attached checkout_token to jewelryItems', {
+          checkoutToken: checkoutToken,
+          itemCount: updatedItems.length
+        });
+      } else {
+        log('JewelryItems already have current checkout_token, no update needed');
+      }
+    } catch (error) {
+      log('Error attaching checkout token to jewelryItems', error);
+    }
+  }
+  
+  /**
+   * Monitors for checkout token availability and captures it
+   */
+  function monitorCheckoutTokenCapture() {
+    // Check periodically if we're on checkout page for token
+    const checkoutMonitor = setInterval(async () => {
+      if (window.location.pathname.includes('/checkout') || 
+          window.location.search.includes('checkout') ||
+          window.location.hash.includes('checkout')) {
+        
+        const checkoutToken = await captureCheckoutToken();
+        if (checkoutToken) {
+          await attachCheckoutTokenToJewelryItems(checkoutToken);
+          clearInterval(checkoutMonitor); // Stop monitoring once captured
+        }
+      }
+    }, 2000);
+    
+    // Stop monitoring after 5 minutes
+    setTimeout(() => clearInterval(checkoutMonitor), 300000);
+    
+    // Also listen for URL changes that might indicate checkout navigation
+    let lastUrl = window.location.href;
+    const urlMonitor = setInterval(async () => {
+      if (window.location.href !== lastUrl) {
+        if (window.location.href.includes('/checkout') || 
+            window.location.search.includes('checkout_token')) {
+          log('Detected navigation to checkout, attempting token capture');
+          
+          const checkoutToken = await captureCheckoutToken();
+          if (checkoutToken) {
+            await attachCheckoutTokenToJewelryItems(checkoutToken);
+            clearInterval(urlMonitor);
+          }
+        }
+        lastUrl = window.location.href;
+      }
+    }, 1000);
+    
+    setTimeout(() => clearInterval(urlMonitor), 300000);
+  }
+
   // =================================================================
   // CART TOKEN ATTACHMENT
   // =================================================================
@@ -938,8 +1152,17 @@ document.addEventListener('DOMContentLoaded', function() {
     // First, try to attach cart token if on cart page
     await attachCartTokenToJewelryItems();
     
+    // Try to capture checkout token if we're already on checkout page
+    const checkoutToken = await captureCheckoutToken();
+    if (checkoutToken) {
+      await attachCheckoutTokenToJewelryItems(checkoutToken);
+    }
+    
     // Start monitoring cart token changes
     monitorCartTokenChanges();
+    
+    // Start monitoring checkout token capture
+    monitorCheckoutTokenCapture();
     
     // Start detecting order completion
     detectOrderCompletion();
