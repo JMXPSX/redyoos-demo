@@ -1,0 +1,508 @@
+{% comment %}
+  REDYOOS ORDER WEBHOOK INTEGRATION
+  
+  This section handles the double payload approach:
+  1. Waits for order completion and extracts checkout_token and cart_token
+  2. Enhances jewelryItems in sessionStorage with tokens
+  3. Sends enhanced jewelryItems payload to webhook endpoint
+  
+  Purpose: Track jewelry items data with order tokens after checkout completion
+  Integration: Detects order completion and processes tokens
+  
+  WEBHOOK CONFIGURATION:
+  - Endpoint URL: https://webhook.site/50c62f38-7160-47fe-9cd8-76b3ad37d796
+  - Method: POST
+  - Payload: JSON with jewelryItems data enhanced with checkout/cart tokens
+  
+  FUNCTIONALITY:
+  1. Detects order completion on checkout page
+  2. Extracts checkout_token and cart_token from order data
+  3. Retrieves jewelryItems from sessionStorage
+  4. Enhances jewelryItems with extracted tokens
+  5. Sends enhanced payload to webhook endpoint
+  6. Clears jewelryItems from sessionStorage
+  
+  ERROR HANDLING:
+  - Graceful fallback if token extraction fails
+  - Webhook sending continues with available data
+  - Console logging for debugging
+{% endcomment %}
+
+{% schema %}
+{
+  "name": "Redyoos Order Webhook",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Webhook Configuration"
+    },
+    {
+      "type": "text",
+      "id": "webhook_url",
+      "label": "Webhook Endpoint URL",
+      "default": "https://webhook.site/50c62f38-7160-47fe-9cd8-76b3ad37d796",
+      "info": "URL where jewelryItems data with tokens will be sent after order completion"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_logging",
+      "label": "Enable Console Logging",
+      "default": true,
+      "info": "Enable debugging logs in browser console"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Redyoos Order Webhook",
+      "category": "Redyoos"
+    }
+  ]
+}
+{% endschema %}
+
+<!-- REDYOOS ORDER WEBHOOK HANDLER -->
+<!-- This section is invisible and only contains JavaScript functionality -->
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // =================================================================
+  // REDYOOS ORDER WEBHOOK INTEGRATION
+  // =================================================================
+  
+  // Configuration
+  const WEBHOOK_URL = {{ section.settings.webhook_url | json }};
+  const ENABLE_LOGGING = {{ section.settings.enable_logging | json }};
+  
+  // Logging utility
+  function log(message, data = null) {
+    if (ENABLE_LOGGING) {
+      if (data) {
+        console.log(`[REDYOOS ORDER WEBHOOK] ${message}`, data);
+      } else {
+        console.log(`[REDYOOS ORDER WEBHOOK] ${message}`);
+      }
+    }
+  }
+  
+  // =================================================================
+  // ORDER COMPLETION & TOKEN EXTRACTION
+  // =================================================================
+  
+  /**
+   * Extracts checkout_token and cart_token from Shopify order data
+   * @returns {Object} Object containing extracted tokens
+   */
+  function extractOrderTokens() {
+    try {
+      let checkoutToken = null;
+      let cartToken = null;
+      
+      // Method 1: Extract from Shopify global objects (if available)
+      if (typeof Shopify !== 'undefined') {
+        if (Shopify.checkout && Shopify.checkout.token) {
+          checkoutToken = Shopify.checkout.token;
+          log('Extracted checkout_token from Shopify.checkout', checkoutToken);
+        }
+        if (Shopify.cart && Shopify.cart.token) {
+          cartToken = Shopify.cart.token;
+          log('Extracted cart_token from Shopify.cart', cartToken);
+        }
+      }
+      
+      // Method 2: Extract from meta tags (common Shopify pattern)
+      if (!checkoutToken) {
+        const checkoutMeta = document.querySelector('meta[name="shopify-checkout-token"]');
+        if (checkoutMeta) {
+          checkoutToken = checkoutMeta.getAttribute('content');
+          log('Extracted checkout_token from meta tag', checkoutToken);
+        }
+      }
+      
+      if (!cartToken) {
+        const cartMeta = document.querySelector('meta[name="shopify-cart-token"]');
+        if (cartMeta) {
+          cartToken = cartMeta.getAttribute('content');
+          log('Extracted cart_token from meta tag', cartToken);
+        }
+      }
+      
+      // Method 3: Extract from URL parameters (checkout pages often have tokens in URL)
+      if (!checkoutToken || !cartToken) {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (!checkoutToken && urlParams.has('checkout_token')) {
+          checkoutToken = urlParams.get('checkout_token');
+          log('Extracted checkout_token from URL params', checkoutToken);
+        }
+        if (!cartToken && urlParams.has('cart_token')) {
+          cartToken = urlParams.get('cart_token');
+          log('Extracted cart_token from URL params', cartToken);
+        }
+      }
+      
+      // Method 4: Extract from page JSON-LD or script tags
+      if (!checkoutToken || !cartToken) {
+        const scriptTags = document.querySelectorAll('script[type="application/json"]');
+        scriptTags.forEach(script => {
+          try {
+            const data = JSON.parse(script.textContent);
+            if (!checkoutToken && data.checkout_token) {
+              checkoutToken = data.checkout_token;
+              log('Extracted checkout_token from JSON script', checkoutToken);
+            }
+            if (!cartToken && data.cart_token) {
+              cartToken = data.cart_token;
+              log('Extracted cart_token from JSON script', cartToken);
+            }
+          } catch (e) {
+            // Ignore parsing errors for non-JSON scripts
+          }
+        });
+      }
+      
+      return { checkoutToken, cartToken };
+    } catch (error) {
+      log('Error extracting order tokens', error);
+      return { checkoutToken: null, cartToken: null };
+    }
+  }
+  
+  /**
+   * Enhances jewelryItems in sessionStorage with extracted tokens
+   * @param {string} checkoutToken - Extracted checkout token
+   * @param {string} cartToken - Extracted cart token
+   */
+  function enhanceJewelryItemsWithTokens(checkoutToken, cartToken) {
+    try {
+      const jewelryItemsData = sessionStorage.getItem('jewelryItems');
+      
+      if (!jewelryItemsData) {
+        log('No jewelryItems found in sessionStorage to enhance with tokens');
+        return;
+      }
+      
+      const jewelryItems = JSON.parse(jewelryItemsData);
+      log('Retrieved jewelryItems for token enhancement', { count: jewelryItems.length });
+      
+      // Enhance each jewelry item with tokens
+      const enhancedItems = jewelryItems.map(item => ({
+        ...item,
+        checkout_token: checkoutToken,
+        cart_token: cartToken,
+        token_timestamp: new Date().toISOString()
+      }));
+      
+      // Store enhanced items back to sessionStorage
+      sessionStorage.setItem('jewelryItems', JSON.stringify(enhancedItems));
+      log('Enhanced jewelryItems with tokens', { 
+        checkoutToken, 
+        cartToken, 
+        enhancedCount: enhancedItems.length 
+      });
+      
+      return enhancedItems;
+    } catch (error) {
+      log('Error enhancing jewelryItems with tokens', error);
+      return null;
+    }
+  }
+  
+  /**
+   * Sends enhanced jewelryItems with tokens to webhook endpoint
+   * @param {Array} jewelryItems - Enhanced jewelry items with tokens
+   */
+  async function sendEnhancedJewelryItemsToWebhook(jewelryItems) {
+    try {
+      if (!jewelryItems || jewelryItems.length === 0) {
+        log('No jewelryItems to send to webhook');
+        return false;
+      }
+
+      // Generate correlation data
+      const correlationId = sessionStorage.getItem('redyoos_correlation_id') || 
+                           'redyoos_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      const sessionId = sessionStorage.getItem('redyoos_session_id') || 
+                       'sess_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      
+      // Store IDs for potential correlation
+      sessionStorage.setItem('redyoos_correlation_id', correlationId);
+      sessionStorage.setItem('redyoos_session_id', sessionId);
+      
+      // Prepare enhanced webhook payload
+      const payload = {
+        // Correlation identifiers
+        correlationId: correlationId,
+        sessionId: sessionId,
+        orderCompletionTimestamp: new Date().toISOString(),
+        
+        // Event information
+        event: 'jewelry_order_completed_with_tokens',
+        source: 'redyoos_shopify_order',
+        version: '2.0',
+        
+        // Enhanced jewelry data with tokens
+        jewelryItems: jewelryItems,
+        jewelryItemsCount: jewelryItems.length,
+        jewelryItemsSummary: jewelryItems.map(item => 
+          `${item.jewelry_type || 'jewelry'} ($${item.estimated_value_min || 'N/A'}-$${item.estimated_value_max || 'N/A'})`
+        ).join(', '),
+        
+        // Token information
+        tokens: {
+          checkout_token: jewelryItems[0]?.checkout_token || null,
+          cart_token: jewelryItems[0]?.cart_token || null,
+          extraction_timestamp: jewelryItems[0]?.token_timestamp || null
+        },
+        
+        // Order and session metadata
+        metadata: {
+          // Browser/session data
+          userAgent: navigator.userAgent,
+          url: window.location.href,
+          referrer: document.referrer,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          language: navigator.language,
+          viewport: {
+            width: window.innerWidth,
+            height: window.innerHeight
+          },
+          
+          // Order completion context
+          pageType: 'checkout_completion',
+          hasTokens: !!(jewelryItems[0]?.checkout_token || jewelryItems[0]?.cart_token)
+        }
+      };
+
+      log('Sending enhanced payload to webhook', payload);
+
+      // Send using fetch with proper headers
+      const response = await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Webhook-Source': 'redyoos-order-completion'
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      if (response.ok) {
+        log('Enhanced webhook sent successfully');
+        // Clear jewelryItems from sessionStorage after successful send
+        sessionStorage.removeItem('jewelryItems');
+        log('Cleared jewelryItems from sessionStorage');
+        return true;
+      } else {
+        log('Webhook response not ok:', response.status, response.statusText);
+        // Still clear sessionStorage to prevent repeated attempts
+        sessionStorage.removeItem('jewelryItems');
+        return false;
+      }
+      
+    } catch (error) {
+      log('Error sending enhanced webhook', error);
+      // Clear sessionStorage even on error to prevent repeated attempts
+      sessionStorage.removeItem('jewelryItems');
+      return false;
+    }
+  }
+
+  // =================================================================
+  // ORDER COMPLETION DETECTION
+  // =================================================================
+  
+  /**
+   * Detects order completion and triggers token extraction + webhook sending
+   */
+  function detectOrderCompletion() {
+    // Method 1: Check if we're on a thank you / order completion page
+    const isThankYouPage = window.location.pathname.includes('/thank_you') || 
+                          window.location.pathname.includes('/orders') ||
+                          document.querySelector('.os-order-number') ||
+                          document.querySelector('.order-confirmation') ||
+                          document.querySelector('[data-order-id]');
+    
+    if (isThankYouPage) {
+      log('Order completion page detected, processing jewelryItems with tokens');
+      processOrderCompletionWebhook();
+      return;
+    }
+    
+    // Method 2: Listen for completion events (Shopify Plus checkout extensibility)
+    if (typeof Shopify !== 'undefined' && Shopify.checkout) {
+      // Monitor for checkout completion
+      let lastCheckoutStep = Shopify.checkout.step;
+      const checkCompletionInterval = setInterval(() => {
+        if (Shopify.checkout.step === 'complete' && lastCheckoutStep !== 'complete') {
+          log('Checkout completion detected via Shopify.checkout.step');
+          processOrderCompletionWebhook();
+          clearInterval(checkCompletionInterval);
+        }
+        lastCheckoutStep = Shopify.checkout.step;
+      }, 1000);
+      
+      // Stop checking after 10 minutes to prevent endless polling
+      setTimeout(() => clearInterval(checkCompletionInterval), 600000);
+    }
+    
+    // Method 3: Watch for DOM changes that indicate order completion
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        // Look for order confirmation elements
+        const addedNodes = Array.from(mutation.addedNodes).filter(node => node.nodeType === 1);
+        const hasOrderConfirmation = addedNodes.some(node => 
+          node.querySelector && (
+            node.querySelector('.order-confirmation') ||
+            node.querySelector('.os-order-number') ||
+            node.querySelector('[data-order-id]') ||
+            (node.textContent && node.textContent.includes('Order #'))
+          )
+        );
+        
+        if (hasOrderConfirmation) {
+          log('Order completion detected via DOM mutation');
+          processOrderCompletionWebhook();
+          observer.disconnect();
+        }
+      });
+    });
+    
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+    
+    // Method 4: Poll for order completion using URL changes
+    let lastUrl = window.location.href;
+    const urlCheckInterval = setInterval(() => {
+      if (window.location.href !== lastUrl) {
+        lastUrl = window.location.href;
+        if (window.location.pathname.includes('/thank_you') || 
+            window.location.pathname.includes('/orders')) {
+          log('Order completion detected via URL change');
+          processOrderCompletionWebhook();
+          clearInterval(urlCheckInterval);
+        }
+      }
+    }, 2000);
+    
+    // Stop URL checking after 10 minutes
+    setTimeout(() => clearInterval(urlCheckInterval), 600000);
+  }
+  
+  /**
+   * Main function that orchestrates the order completion webhook process
+   */
+  async function processOrderCompletionWebhook() {
+    try {
+      log('Starting order completion webhook process');
+      
+      // Check if we have jewelryItems to process
+      const jewelryItemsData = sessionStorage.getItem('jewelryItems');
+      if (!jewelryItemsData) {
+        log('No jewelryItems found in sessionStorage - skipping webhook process');
+        return;
+      }
+      
+      // Extract tokens from the order/checkout data
+      const { checkoutToken, cartToken } = extractOrderTokens();
+      
+      if (!checkoutToken && !cartToken) {
+        log('Warning: No tokens extracted, sending jewelryItems without tokens');
+      } else {
+        log('Successfully extracted tokens', { checkoutToken: !!checkoutToken, cartToken: !!cartToken });
+      }
+      
+      // Enhance jewelryItems with extracted tokens
+      const enhancedItems = enhanceJewelryItemsWithTokens(checkoutToken, cartToken);
+      
+      if (!enhancedItems) {
+        log('Failed to enhance jewelryItems with tokens');
+        return;
+      }
+      
+      // Send enhanced payload to webhook
+      const success = await sendEnhancedJewelryItemsToWebhook(enhancedItems);
+      
+      if (success) {
+        log('Order completion webhook process completed successfully');
+      } else {
+        log('Order completion webhook process completed with errors');
+      }
+      
+    } catch (error) {
+      log('Error in order completion webhook process', error);
+    }
+  }
+  
+  // =================================================================
+  // INITIALIZATION
+  // =================================================================
+  
+  // Initialize order completion detection
+  function initializeOrderCompletionWebhook() {
+    log('Initializing Redyoos Order Webhook');
+    
+    // Start detecting order completion
+    detectOrderCompletion();
+    
+    // Also check immediately if we're already on a completion page
+    setTimeout(() => {
+      const isCompletionPage = window.location.pathname.includes('/thank_you') || 
+                              window.location.pathname.includes('/orders') ||
+                              document.querySelector('.os-order-number') ||
+                              document.querySelector('.order-confirmation');
+      
+      if (isCompletionPage) {
+        log('Already on order completion page, processing immediately');
+        processOrderCompletionWebhook();
+      }
+    }, 500);
+    
+    log('Redyoos Order Webhook initialized');
+  }
+  
+  // Wait for DOM to be fully loaded, then initialize
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeOrderCompletionWebhook);
+  } else {
+    initializeOrderCompletionWebhook();
+  }
+  
+  // Also initialize after a short delay for dynamic content
+  setTimeout(initializeOrderCompletionWebhook, 1000);
+});
+</script>
+
+<!-- 
+  INTEGRATION INSTRUCTIONS:
+  
+  To activate this order completion webhook integration:
+  
+  1. Add this section to checkout/order completion pages:
+     - Go to Shopify Admin > Online Store > Themes
+     - Edit the active theme
+     - Add to checkout.liquid or thank_you.liquid templates
+     - Or add "redyoos-checkout-webhook" to relevant sections
+     
+  2. Or add via theme customizer:
+     - Go to checkout pages in theme customizer
+     - Add section > Redyoos Order Webhook
+     - Configure webhook URL if needed
+     
+  3. The section will automatically:
+     - Detect order completion using multiple methods
+     - Extract checkout_token and cart_token from order data
+     - Enhance jewelryItems in sessionStorage with tokens
+     - Send enhanced payload to webhook endpoint
+     - Clear sessionStorage after successful send
+     
+  4. Double Payload Flow:
+     - First: Shopify's orders/create webhook fires (handled by redyoos-order-attributes.liquid)
+     - Second: This enhanced jewelryItems webhook fires with tokens
+     
+  TROUBLESHOOTING:
+  - Check browser console for "[REDYOOS ORDER WEBHOOK]" logs
+  - Verify jewelryItems exists in sessionStorage
+  - Test webhook endpoint URL separately
+  - Ensure proper page detection on order completion
+  - Check that order tokens are being extracted successfully
+-->
