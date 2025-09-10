@@ -54,6 +54,24 @@
   </div>
 </section>
 
+<!-- Jewelry Limit Modal -->
+<div id="jewelry-limit-modal" class="delete-modal" style="display: none;">
+  <div class="delete-modal-overlay"></div>
+  <div class="delete-modal-content jewelry-limit-modal-content">
+    <div class="jewelry-limit-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+      </svg>
+    </div>
+    <h3>Maximum Jewelry Limit Reached</h3>
+    <p>You have already uploaded <strong>3 jewelry items</strong>, which is the maximum allowed. Please remove an item to add another.</p>
+    <div class="delete-modal-buttons">
+      <button id="jewelry-limit-cancel-btn" class="btn-cancel">Cancel</button>
+      <button id="jewelry-limit-review-btn" class="btn-confirm-delete">Stay Here</button>
+    </div>
+  </div>
+</div>
+
 <!-- Delete Confirmation Modal -->
 <div id="delete-confirmation-modal" class="delete-modal" style="display: none;">
   <div class="delete-modal-overlay"></div>
@@ -403,6 +421,23 @@
   background: #c82333;
   transform: translateY(-1px);
 }
+
+/* Jewelry Limit Modal Styles */
+.jewelry-limit-modal-content {
+  text-align: center;
+}
+
+.jewelry-limit-icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.jewelry-limit-icon svg {
+  width: 48px;
+  height: 48px;
+  color: #f59e0b;
+}
 </style>
 
 <script>
@@ -479,11 +514,29 @@ function clearCartAndAddViaForm(variantId, quantity) {
   }
 }
 
+// Function to show jewelry limit modal
+function showJewelryLimitModal() {
+  const modal = document.getElementById('jewelry-limit-modal');
+  if (modal) {
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+// Function to hide jewelry limit modal
+function hideJewelryLimitModal() {
+  const modal = document.getElementById('jewelry-limit-modal');
+  if (modal) {
+    modal.style.display = 'none';
+    document.body.style.overflow = 'auto';
+  }
+}
+
 // Function to handle Add another item button click
 function addAnotherItem() {
   const jewelryItems = getJewelryItems();
   if (jewelryItems.length >= 3) {
-    alert('Maximum of 3 jewelry items allowed. Please remove an item to add another.');
+    showJewelryLimitModal();
     return;
   }
   window.location.href = '/pages/appraisal-form?add=true';
@@ -769,6 +822,36 @@ document.addEventListener('DOMContentLoaded', function() {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && deleteModal.style.display === 'flex') {
       hideDeleteConfirmation();
+    }
+  });
+
+  // Jewelry Limit Modal event listeners
+  const jewelryLimitModal = document.getElementById('jewelry-limit-modal');
+  const jewelryLimitCancelBtn = document.getElementById('jewelry-limit-cancel-btn');
+  const jewelryLimitReviewBtn = document.getElementById('jewelry-limit-review-btn');
+
+  // Close jewelry limit modal event listeners
+  if (jewelryLimitCancelBtn) {
+    jewelryLimitCancelBtn.addEventListener('click', hideJewelryLimitModal);
+  }
+
+  if (jewelryLimitReviewBtn) {
+    jewelryLimitReviewBtn.addEventListener('click', hideJewelryLimitModal);
+  }
+
+  // Close jewelry limit modal when clicking on overlay
+  if (jewelryLimitModal) {
+    jewelryLimitModal.addEventListener('click', (e) => {
+      if (e.target === jewelryLimitModal || e.target.classList.contains('delete-modal-overlay')) {
+        hideJewelryLimitModal();
+      }
+    });
+  }
+
+  // Close jewelry limit modal on Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && jewelryLimitModal && jewelryLimitModal.style.display === 'flex') {
+      hideJewelryLimitModal();
     }
   });
 
