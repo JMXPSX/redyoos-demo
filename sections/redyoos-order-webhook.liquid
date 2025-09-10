@@ -1373,12 +1373,71 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // =================================================================
+  // SESSION ID REGENERATION FOR NEW JEWELRY EVALUATIONS
+  // =================================================================
+  
+  /**
+   * Global function to force new jewelry session across all pages
+   */
+  window.RedyoosStartNewSession = function() {
+    const newSessionId = Date.now() + "-" + Math.random().toString(36).substr(2, 9);
+    sessionStorage.setItem("custom_session_id", newSessionId);
+    
+    // Clear all jewelry-related session data
+    sessionStorage.removeItem('jewelryItems');
+    sessionStorage.removeItem('calculatedValues');
+    sessionStorage.removeItem('uploadedImages');
+    sessionStorage.removeItem('currentJewelryItemIndex');
+    sessionStorage.removeItem('redyoos_last_jewelry_session');
+    
+    log('Started fresh jewelry session with new session_id:', newSessionId);
+    return newSessionId;
+  };
+  
+  /**
+   * Detects new session triggers globally across all pages
+   */
+  function setupGlobalSessionTriggers() {
+    document.addEventListener('click', function(event) {
+      const target = event.target;
+      const targetText = target.textContent?.toLowerCase() || '';
+      
+      // Global triggers for new jewelry sessions
+      const globalSessionTriggers = [
+        'get a buy back mail kit',
+        'start new evaluation',
+        'new jewelry evaluation',
+        'begin new appraisal',
+        'evaluate another item',
+        'add another item',
+        'start over',
+        'fresh evaluation'
+      ];
+      
+      const shouldTriggerNewSession = globalSessionTriggers.some(trigger => 
+        targetText.includes(trigger) ||
+        target.getAttribute('href')?.includes('new_session=true') ||
+        target.id?.toLowerCase().includes('new_session') ||
+        target.className?.toLowerCase().includes('new_session')
+      );
+      
+      if (shouldTriggerNewSession) {
+        log('Global new session trigger detected:', targetText);
+        window.RedyoosStartNewSession();
+      }
+    });
+  }
+
+  // =================================================================
   // INITIALIZATION
   // =================================================================
   
   // Initialize order completion detection
   async function initializeOrderCompletionWebhook() {
     log('Initializing Redyoos Order Webhook');
+    
+    // Set up global session triggers
+    setupGlobalSessionTriggers();
     
     // First, attach session ID to cart using multiple methods
     await attachSessionIdToCart();

@@ -598,14 +598,114 @@ document.addEventListener('DOMContentLoaded', function() {
   // SESSION ID GENERATION FOR ORDER CORRELATION
   // =================================================================
   
-  // Generate unique session ID if it doesn't exist
-  if (!sessionStorage.getItem("custom_session_id")) {
+  /**
+   * Generates a fresh session ID for new jewelry evaluation sessions
+   */
+  function generateNewSessionId() {
     const sessionId = Date.now() + "-" + Math.random().toString(36).substr(2, 9);
     sessionStorage.setItem("custom_session_id", sessionId);
-    console.log('[REDYOOS SESSION] Generated new session ID:', sessionId);
-  } else {
-    console.log('[REDYOOS SESSION] Using existing session ID:', sessionStorage.getItem("custom_session_id"));
+    console.log('[REDYOOS SESSION] Generated fresh session ID:', sessionId);
+    return sessionId;
   }
+  
+  /**
+   * Checks if we need a new session ID based on various triggers
+   */
+  function checkAndGenerateSessionId() {
+    const existingSessionId = sessionStorage.getItem("custom_session_id");
+    const lastJewelrySession = sessionStorage.getItem("redyoos_last_jewelry_session");
+    const currentTimestamp = Date.now();
+    
+    // Trigger new session if:
+    // 1. No existing session ID
+    // 2. Last jewelry session was more than 30 minutes ago
+    // 3. User explicitly started a new evaluation (detected by certain actions)
+    
+    let needsNewSession = false;
+    
+    if (!existingSessionId) {
+      needsNewSession = true;
+      console.log('[REDYOOS SESSION] No existing session ID, generating new one');
+    } else if (lastJewelrySession) {
+      const timeSinceLastSession = currentTimestamp - parseInt(lastJewelrySession);
+      const thirtyMinutes = 30 * 60 * 1000;
+      
+      if (timeSinceLastSession > thirtyMinutes) {
+        needsNewSession = true;
+        console.log('[REDYOOS SESSION] Last session was more than 30 minutes ago, generating new session ID');
+      }
+    }
+    
+    if (needsNewSession) {
+      generateNewSessionId();
+    } else {
+      console.log('[REDYOOS SESSION] Using existing session ID:', existingSessionId);
+    }
+    
+    // Update the last session timestamp
+    sessionStorage.setItem("redyoos_last_jewelry_session", currentTimestamp.toString());
+  }
+  
+  // Check and potentially generate new session ID
+  checkAndGenerateSessionId();
+  
+  /**
+   * Forces generation of new session ID for explicit new evaluation sessions
+   */
+  function forceNewJewelrySession() {
+    console.log('[REDYOOS SESSION] Forcing new jewelry evaluation session');
+    generateNewSessionId();
+    
+    // Clear any existing jewelry items to start fresh
+    sessionStorage.removeItem('jewelryItems');
+    sessionStorage.removeItem('calculatedValues');
+    sessionStorage.removeItem('uploadedImages');
+    sessionStorage.removeItem('currentJewelryItemIndex');
+    
+    console.log('[REDYOOS SESSION] Cleared previous jewelry session data');
+  }
+  
+  /**
+   * Detects user actions that should trigger a new jewelry session
+   */
+  function setupNewSessionTriggers() {
+    // Monitor for "Get a Buy Back Mail Kit" button clicks or similar actions
+    document.addEventListener('click', function(event) {
+      const target = event.target;
+      const targetText = target.textContent?.toLowerCase() || '';
+      
+      // Triggers that indicate starting a new jewelry evaluation
+      const newSessionTriggers = [
+        'get a buy back mail kit',
+        'start new evaluation', 
+        'evaluate new jewelry',
+        'new appraisal',
+        'start over',
+        'begin evaluation'
+      ];
+      
+      const shouldTriggerNewSession = newSessionTriggers.some(trigger => 
+        targetText.includes(trigger) ||
+        target.id?.toLowerCase().includes(trigger.replace(/\s/g, '_')) ||
+        target.className?.toLowerCase().includes(trigger.replace(/\s/g, '_'))
+      );
+      
+      if (shouldTriggerNewSession) {
+        console.log('[REDYOOS SESSION] Detected new jewelry session trigger:', targetText);
+        forceNewJewelrySession();
+      }
+    });
+    
+    // Also trigger new session when navigating back to calculator from other pages
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('new_session') === 'true' || urlParams.get('fresh_start') === 'true') {
+      console.log('[REDYOOS SESSION] URL parameter detected, starting fresh session');
+      forceNewJewelrySession();
+    }
+  }
+  
+  // Set up triggers for new sessions
+  setupNewSessionTriggers();
   
   // DOM Elements
   const metalSelect = document.getElementById('metal-select');
