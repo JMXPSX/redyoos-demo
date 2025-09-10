@@ -224,7 +224,7 @@
         <div class="service-description">
           {{ section.settings.buyback_description | default: 'Get cash for your jewelry with our professional appraisal service. Send us your gold, silver, platinum, or gemstone pieces using our secure, insured mail kit. Our certified appraisers evaluate each item individually and provide competitive offers based on current market prices. Fast, transparent, and trustworthy.' }}
         </div>
-        <a href="{{ section.settings.buyback_link | default: '/pages/appraisal-form' }}" class="service-button buyback-button">
+        <a href="{{ section.settings.buyback_link | default: '/pages/appraisal-form' }}" class="service-button buyback-button" id="buyback-mailkit-button">
           {{ section.settings.buyback_button_text | default: 'Get a Buy Back Mail Kit' }}
         </a>
       </div>
@@ -234,6 +234,28 @@
 </div>
 
 <script>
+// =================================================================
+// SESSION ID REGENERATION FOR NEW JEWELRY EVALUATIONS
+// =================================================================
+
+/**
+ * Forces generation of new session ID when starting new jewelry evaluation
+ */
+function startFreshJewelrySession() {
+  const newSessionId = Date.now() + "-" + Math.random().toString(36).substr(2, 9);
+  sessionStorage.setItem("custom_session_id", newSessionId);
+  
+  // Clear any existing jewelry items to start completely fresh
+  sessionStorage.removeItem('jewelryItems');
+  sessionStorage.removeItem('calculatedValues');
+  sessionStorage.removeItem('uploadedImages');
+  sessionStorage.removeItem('currentJewelryItemIndex');
+  sessionStorage.removeItem('redyoos_last_jewelry_session');
+  
+  console.log('[REDYOOS SESSION] Started fresh jewelry session from mailkit - session_id:', newSessionId);
+  return newSessionId;
+}
+
 // Cart API Function - Clear cart and add Recycle Mail Kit
 async function redirectToRecycleMailKitCheckout() {
   const recycleButton = document.querySelector('.recycle-button');
@@ -339,6 +361,10 @@ function initializePageTransition() {
     if (buybackButton) {
       buybackButton.addEventListener('click', function(e) {
         e.preventDefault();
+        
+        // CRITICAL: Generate fresh session ID when user clicks "Get a Buy Back Mail Kit"
+        startFreshJewelrySession();
+        
         buybackButton.classList.add('loading');
         
         if (servicesSection && servicesSection.querySelector('.services-section')) {
@@ -382,12 +408,34 @@ function initializePageTransition() {
   setupTransition();
 }
 
+// Direct event listener for Buy Back Mail Kit button (backup)
+function setupBuyBackButtonListener() {
+  const buybackMailkitButton = document.getElementById('buyback-mailkit-button');
+  if (buybackMailkitButton) {
+    buybackMailkitButton.addEventListener('click', function(e) {
+      console.log('[REDYOOS SESSION] Buy Back Mail Kit button clicked - generating fresh session');
+      startFreshJewelrySession();
+    });
+    console.log('[REDYOOS SESSION] Buyback button listener attached');
+  } else {
+    // Retry after delay if button not found yet
+    setTimeout(setupBuyBackButtonListener, 500);
+  }
+}
+
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initializePageTransition);
+  document.addEventListener('DOMContentLoaded', function() {
+    initializePageTransition();
+    setupBuyBackButtonListener();
+  });
 } else {
   initializePageTransition();
+  setupBuyBackButtonListener();
 }
-setTimeout(initializePageTransition, 1000);
+setTimeout(() => {
+  initializePageTransition();
+  setupBuyBackButtonListener();
+}, 1000);
 </script>
 
 {% comment %} {% schema %}
