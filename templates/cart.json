@@ -39,14 +39,14 @@
         "padding_bottom": 40
       }
     },
-    "redyoos-checkout-webhook": {
-      "type": "redyoos-checkout-webhook",
+    "redyoos-order-attributes": {
+      "type": "redyoos-order-attributes",
       "settings": {}
     }
   },
   "order": [
     "cart-items",
     "cart-footer",
-    "redyoos-checkout-webhook"
+    "redyoos-order-attributes"
   ]
 }
