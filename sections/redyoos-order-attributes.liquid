@@ -157,7 +157,12 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         {
           name: 'jewelryItemsSummary',
-          value: jewelryItems.map(item => `${item.jewelry_type || 'jewelry'} ($${item.estimated_value_min}-$${item.estimated_value_max})`).join(', ')
+          value: jewelryItems.map(item => {
+            const type = item.jewelry_type || item.jewelryType || 'jewelry';
+            const minValue = item.estimated_value_min || item.estimatedValueMin || item.value_min || 'N/A';
+            const maxValue = item.estimated_value_max || item.estimatedValueMax || item.value_max || 'N/A';
+            return `${type} ($${minValue}-$${maxValue})`;
+          }).join(', ')
         }
       ];
       
@@ -238,19 +243,29 @@ document.addEventListener('DOMContentLoaded', function() {
     // Enhance form submission
     enhanceFormSubmission();
     
-    // Re-inject after DOM changes (for dynamic cart updates)
+    // Re-inject after DOM changes (for dynamic cart updates) - with throttling
+    let lastInjectionTime = 0;
     const observer = new MutationObserver(function(mutations) {
-      mutations.forEach(function(mutation) {
-        if (mutation.type === 'childList' && mutation.target.id === 'cart') {
-          log('Cart form DOM changed - re-injecting attributes');
-          setTimeout(injectJewelryItemsAttributes, 100);
-        }
-      });
+      const now = Date.now();
+      // Throttle to prevent excessive re-injections (max once per 2 seconds)
+      if (now - lastInjectionTime > 2000) {
+        mutations.forEach(function(mutation) {
+          if (mutation.type === 'childList' && mutation.target.id === 'cart') {
+            // Only re-inject if our attributes are actually missing
+            const existingAttributes = document.querySelectorAll('.redyoos-order-attribute');
+            if (existingAttributes.length === 0) {
+              log('Cart form DOM changed and attributes missing - re-injecting');
+              setTimeout(injectJewelryItemsAttributes, 100);
+              lastInjectionTime = now;
+            }
+          }
+        });
+      }
     });
     
     const cartForm = document.querySelector('#cart');
     if (cartForm) {
-      observer.observe(cartForm, { childList: true, subtree: true });
+      observer.observe(cartForm, { childList: true, subtree: false }); // Only direct children, not subtree
     }
     
     log('Redyoos Order Attributes system initialized successfully');
