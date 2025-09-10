@@ -756,92 +756,14 @@ document.addEventListener('DOMContentLoaded', function() {
         } : {})
       };
       
-      log('Sending enhanced payload to webhook', payload);
       log('Session-based payload for correlation', sessionBasedPayload);
       
       // STEP 3: Send session payload to your dedicated backend endpoint
       // This matches your requested format: {session_id, events}
-      await sendSessionPayloadToBackend(sessionBasedPayload);
+      const success = await sendSessionPayloadToBackend(sessionBasedPayload);
       
-      let success = false;
-      
-      // Check if RedyoosWebhookProxy is available (CORS bypass solution)
-      if (typeof window.RedyoosWebhookProxy !== 'undefined') {
-        log('Using RedyoosWebhookProxy for CORS-safe webhook sending');
-        
-        // Use the CORS proxy with callback
-        window.RedyoosWebhookProxy.send(payload, {
-          maxRetries: beaconOnly ? 1 : 3,
-          retryDelay: beaconOnly ? 0 : 1000,
-          callback: function(proxySuccess, method) {
-            if (proxySuccess) {
-              log(`Webhook sent successfully via RedyoosWebhookProxy using ${method}`);
-              success = true;
-              handleWebhookResult(true);
-            } else {
-              log('RedyoosWebhookProxy failed, falling back to direct methods');
-              success = false;
-              fallbackToDirectMethods();
-            }
-          }
-        });
-        
-        // Return early since we're using async callback
-        return;
-        
-      } else {
-        log('RedyoosWebhookProxy not available, using direct methods');
-        fallbackToDirectMethods();
-      }
-      
-      function fallbackToDirectMethods() {
-        if (beaconOnly) {
-          // Use beacon for immediate sending during page unload
-          success = navigator.sendBeacon(WEBHOOK_URL, JSON.stringify(payload));
-          log('Beacon send result:', success);
-          handleWebhookResult(success);
-        } else {
-          // Try multiple sending methods (prioritize CORS-friendly approaches)
-          
-          // Method 1: sendBeacon (most reliable for cross-origin)
-          success = navigator.sendBeacon(WEBHOOK_URL, JSON.stringify(payload));
-          if (success) {
-            log('Webhook sent successfully via sendBeacon');
-            handleWebhookResult(true);
-          } else {
-            log('SendBeacon failed, trying no-cors fetch');
-            
-            // Method 2: Fetch with no-cors mode (doesn't read response but sends data)
-            fetch(WEBHOOK_URL, {
-              method: 'POST',
-              mode: 'no-cors', // This bypasses CORS restrictions
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify(payload)
-            }).then(() => {
-              // In no-cors mode, we can't read the response, so assume success
-              success = true;
-              log('Webhook sent successfully via no-cors fetch');
-              handleWebhookResult(true);
-            }).catch(noCorsError => {
-              log('No-cors fetch also failed, trying final beacon attempt', noCorsError);
-              
-              // Method 3: Final beacon attempt with blob
-              try {
-                const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
-                success = navigator.sendBeacon(WEBHOOK_URL, blob);
-                log('Final beacon attempt result:', success);
-                handleWebhookResult(success);
-              } catch (blobError) {
-                log('All sending methods failed', blobError);
-                success = false;
-                handleWebhookResult(false);
-              }
-            });
-          }
-        }
-      }
+      // Handle cleanup after sending session payload
+      handleWebhookResult(success);
       
       function handleWebhookResult(webhookSuccess) {
         if (webhookSuccess) {
