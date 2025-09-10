@@ -345,13 +345,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // Store the current timestamp to track when checkout was initiated
         sessionStorage.setItem('redyoos_checkout_initiated', Date.now().toString());
         
-        // Try to capture checkout token immediately (might not be available yet)
+        // Try to capture checkout token from the redirection process
         setTimeout(async () => {
-          const checkoutToken = await captureCheckoutToken();
+          const checkoutToken = await captureCheckoutTokenFromProcess();
           if (checkoutToken) {
             await attachCheckoutTokenToJewelryItems(checkoutToken);
           }
-        }, 1000);
+        }, 1500); // Give more time for redirect to occur
         
         // Set up multiple delayed webhook attempts
         setTimeout(() => processOrderCompletionWebhook(), 3000);  // 3 seconds
@@ -375,11 +375,11 @@ document.addEventListener('DOMContentLoaded', function() {
           
           // Try to capture checkout token after form submission
           setTimeout(async () => {
-            const checkoutToken = await captureCheckoutToken();
+            const checkoutToken = await captureCheckoutTokenFromProcess();
             if (checkoutToken) {
               await attachCheckoutTokenToJewelryItems(checkoutToken);
             }
-          }, 1500);
+          }, 2000); // Give more time for redirect processing
           
           // Multiple delayed attempts
           setTimeout(() => processOrderCompletionWebhook(), 3000);
@@ -406,11 +406,11 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Try to capture checkout token after button click
         setTimeout(async () => {
-          const checkoutToken = await captureCheckoutToken();
+          const checkoutToken = await captureCheckoutTokenFromProcess();
           if (checkoutToken) {
             await attachCheckoutTokenToJewelryItems(checkoutToken);
           }
-        }, 1000);
+        }, 1500);
         
         // Staggered webhook attempts
         setTimeout(() => processOrderCompletionWebhook(), 2000);
@@ -746,71 +746,123 @@ document.addEventListener('DOMContentLoaded', function() {
   // =================================================================
   
   /**
-   * Captures checkout token during checkout initiation and redirection
+   * Intercepts checkout form submission to capture checkout token from response
    */
-  async function captureCheckoutToken() {
+  async function interceptCheckoutFormSubmission(form) {
+    return new Promise((resolve) => {
+      const originalSubmit = form.submit;
+      const originalAction = form.action;
+      
+      // Override form submission to capture response
+      form.addEventListener('submit', async (event) => {
+        log('Intercepting checkout form submission to capture checkout token');
+        
+        try {
+          // Don't prevent default - let the form submit normally
+          // But also try to capture the response
+          
+          // Create FormData from the form
+          const formData = new FormData(form);
+          
+          // Try to submit via fetch to capture response (parallel to normal submission)
+          fetch(originalAction || '/cart', {
+            method: 'POST',
+            body: formData,
+            redirect: 'manual' // Don't follow redirects automatically
+          }).then(async (response) => {
+            log('Checkout form submission response received', response.status);
+            
+            // Check for checkout token in response headers
+            const location = response.headers.get('Location');
+            if (location) {
+              log('Checkout redirect location:', location);
+              
+              // Extract checkout token from redirect URL
+              const redirectUrl = new URL(location, window.location.origin);
+              const checkoutToken = redirectUrl.searchParams.get('checkout') || 
+                                   redirectUrl.searchParams.get('token') ||
+                                   redirectUrl.pathname.split('/').pop();
+              
+              if (checkoutToken && checkoutToken.length > 10) {
+                log('Captured checkout_token from redirect URL', checkoutToken);
+                resolve(checkoutToken);
+                return;
+              }
+              
+              // If token not in URL params, try to extract from path
+              const pathSegments = redirectUrl.pathname.split('/');
+              const possibleToken = pathSegments[pathSegments.length - 1];
+              if (possibleToken && possibleToken.length > 10 && !possibleToken.includes('.')) {
+                log('Captured checkout_token from redirect path', possibleToken);
+                resolve(possibleToken);
+                return;
+              }
+            }
+            
+            // If redirect doesn't contain token, try to parse response body
+            if (response.status === 302 || response.status === 303) {
+              // This is a redirect response, the token should be in the location header
+              log('Checkout redirect detected but no token found in location header');
+            }
+            
+            resolve(null);
+          }).catch(error => {
+            log('Error intercepting checkout form response', error);
+            resolve(null);
+          });
+          
+        } catch (error) {
+          log('Error in checkout form interception', error);
+          resolve(null);
+        }
+      }, { once: true }); // Only intercept once
+    });
+  }
+  
+  /**
+   * Captures checkout token by intercepting the checkout process
+   */
+  async function captureCheckoutTokenFromProcess() {
     let checkoutToken = null;
     
-    // Method 1: Extract from current URL (if we're on checkout page)
+    // Method 1: Extract from current URL (if we're already on checkout page)
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('checkout_token')) {
-      checkoutToken = urlParams.get('checkout_token');
-      log('Captured checkout_token from URL params', checkoutToken);
+    const pathSegments = window.location.pathname.split('/');
+    
+    if (urlParams.has('checkout')) {
+      checkoutToken = urlParams.get('checkout');
+      log('Captured checkout_token from URL param "checkout"', checkoutToken);
+    } else if (urlParams.has('token')) {
+      checkoutToken = urlParams.get('token');
+      log('Captured checkout_token from URL param "token"', checkoutToken);
+    } else if (window.location.pathname.includes('/checkouts/')) {
+      // Extract token from checkout URL path like /checkouts/TOKEN_HERE
+      const tokenSegment = pathSegments[pathSegments.indexOf('checkouts') + 1];
+      if (tokenSegment && tokenSegment.length > 10) {
+        checkoutToken = tokenSegment;
+        log('Captured checkout_token from checkout URL path', checkoutToken);
+      }
     }
     
-    // Method 2: Check for checkout token in URL hash
-    if (!checkoutToken && window.location.hash.includes('checkout_token=')) {
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      checkoutToken = hashParams.get('checkout_token');
-      log('Captured checkout_token from URL hash', checkoutToken);
-    }
-    
-    // Method 3: Try to get from Shopify checkout object (if available)
+    // Method 2: Try to get from Shopify checkout object (if available)
     if (!checkoutToken && typeof Shopify !== 'undefined' && Shopify.checkout && Shopify.checkout.token) {
       checkoutToken = Shopify.checkout.token;
       log('Captured checkout_token from Shopify.checkout', checkoutToken);
     }
     
-    // Method 4: Listen for checkout initiation and capture from redirect
-    if (!checkoutToken && window.location.pathname.includes('/checkout')) {
-      // Try to fetch checkout data if on checkout page
-      try {
-        const checkoutResponse = await fetch(window.location.href, {
-          method: 'GET',
-          credentials: 'same-origin'
-        });
+    // Method 3: Look for checkout forms and intercept their submission
+    if (!checkoutToken) {
+      const checkoutForms = document.querySelectorAll('form[action*="cart"], form[action*="checkout"], form#cart');
+      
+      for (const form of checkoutForms) {
+        log('Setting up checkout form interception for token capture');
         
-        if (checkoutResponse.ok) {
-          const checkoutHtml = await checkoutResponse.text();
-          // Parse HTML to find checkout token in scripts or meta tags
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(checkoutHtml, 'text/html');
-          
-          // Look for checkout token in script tags
-          const scripts = doc.querySelectorAll('script');
-          for (const script of scripts) {
-            const scriptContent = script.textContent || script.innerText;
-            if (scriptContent.includes('checkout') && scriptContent.includes('token')) {
-              const tokenMatch = scriptContent.match(/["']?token["']?\s*:\s*["']([^"']+)["']/);
-              if (tokenMatch) {
-                checkoutToken = tokenMatch[1];
-                log('Captured checkout_token from checkout page script', checkoutToken);
-                break;
-              }
-            }
-          }
-          
-          // Look for checkout token in meta tags
-          if (!checkoutToken) {
-            const checkoutMeta = doc.querySelector('meta[name="shopify-checkout-token"], meta[property="shopify:checkout_token"]');
-            if (checkoutMeta) {
-              checkoutToken = checkoutMeta.getAttribute('content');
-              log('Captured checkout_token from checkout page meta tag', checkoutToken);
-            }
-          }
+        // Set up interception for this form
+        const token = await interceptCheckoutFormSubmission(form);
+        if (token) {
+          checkoutToken = token;
+          break;
         }
-      } catch (error) {
-        log('Error fetching checkout page for token extraction', error);
       }
     }
     
@@ -870,35 +922,44 @@ document.addEventListener('DOMContentLoaded', function() {
     // Check periodically if we're on checkout page for token
     const checkoutMonitor = setInterval(async () => {
       if (window.location.pathname.includes('/checkout') || 
+          window.location.pathname.includes('/checkouts') ||
           window.location.search.includes('checkout') ||
-          window.location.hash.includes('checkout')) {
+          window.location.search.includes('token')) {
         
-        const checkoutToken = await captureCheckoutToken();
+        const checkoutToken = await captureCheckoutTokenFromProcess();
         if (checkoutToken) {
           await attachCheckoutTokenToJewelryItems(checkoutToken);
           clearInterval(checkoutMonitor); // Stop monitoring once captured
         }
       }
-    }, 2000);
+    }, 3000); // Check every 3 seconds
     
     // Stop monitoring after 5 minutes
     setTimeout(() => clearInterval(checkoutMonitor), 300000);
     
-    // Also listen for URL changes that might indicate checkout navigation
+    // Listen for URL changes that might indicate checkout navigation
     let lastUrl = window.location.href;
     const urlMonitor = setInterval(async () => {
       if (window.location.href !== lastUrl) {
-        if (window.location.href.includes('/checkout') || 
-            window.location.search.includes('checkout_token')) {
-          log('Detected navigation to checkout, attempting token capture');
+        const newUrl = window.location.href;
+        log('URL changed, checking for checkout token', { from: lastUrl, to: newUrl });
+        
+        if (newUrl.includes('/checkout') || 
+            newUrl.includes('/checkouts') ||
+            newUrl.includes('checkout') ||
+            newUrl.includes('token=')) {
+          log('Detected navigation to checkout-related page, attempting token capture');
           
-          const checkoutToken = await captureCheckoutToken();
-          if (checkoutToken) {
-            await attachCheckoutTokenToJewelryItems(checkoutToken);
-            clearInterval(urlMonitor);
-          }
+          // Give a moment for the page to load
+          setTimeout(async () => {
+            const checkoutToken = await captureCheckoutTokenFromProcess();
+            if (checkoutToken) {
+              await attachCheckoutTokenToJewelryItems(checkoutToken);
+              clearInterval(urlMonitor);
+            }
+          }, 1000);
         }
-        lastUrl = window.location.href;
+        lastUrl = newUrl;
       }
     }, 1000);
     
@@ -1153,7 +1214,7 @@ document.addEventListener('DOMContentLoaded', function() {
     await attachCartTokenToJewelryItems();
     
     // Try to capture checkout token if we're already on checkout page
-    const checkoutToken = await captureCheckoutToken();
+    const checkoutToken = await captureCheckoutTokenFromProcess();
     if (checkoutToken) {
       await attachCheckoutTokenToJewelryItems(checkoutToken);
     }
