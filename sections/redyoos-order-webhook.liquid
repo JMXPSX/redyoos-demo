@@ -533,21 +533,41 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       
       // Extract tokens from the order/checkout data
-      const { checkoutToken, cartToken } = extractOrderTokens();
+      const { checkoutToken, cartToken: extractedCartToken } = extractOrderTokens();
       
-      // Always try to enhance items, even without tokens
-      const enhancedItems = jewelryItems.map(item => ({
-        ...item,
-        checkout_token: checkoutToken || null,
-        cart_token: cartToken || null,
-        token_timestamp: new Date().toISOString(),
-        webhook_attempt: Date.now()
-      }));
+      // Check if jewelry items already have a cart_token attached
+      let finalCartToken = extractedCartToken;
+      const existingCartToken = jewelryItems[0]?.cart_token;
       
-      log('Enhanced jewelryItems', { 
-        itemCount: enhancedItems.length,
+      if (existingCartToken) {
+        log('Using cart_token already attached to jewelryItems', existingCartToken);
+        finalCartToken = existingCartToken;
+      } else if (extractedCartToken) {
+        log('Using newly extracted cart_token', extractedCartToken);
+        finalCartToken = extractedCartToken;
+      } else {
+        // Try to get from stored session value
+        const storedCartToken = sessionStorage.getItem('redyoos_cart_token');
+        if (storedCartToken) {
+          log('Using cart_token from sessionStorage', storedCartToken);
+          finalCartToken = storedCartToken;
+        }
+      }
+      
+      // Clean jewelryItems for webhook (remove internal processing metadata)
+      const cleanedItems = jewelryItems.map(item => {
+        const { cart_token, cart_token_attached_timestamp, cart_token_source, webhook_attempt, ...cleanItem } = item;
+        return {
+          ...cleanItem,
+          webhook_attempt: Date.now() // Only keep processing metadata
+        };
+      });
+      
+      log('Prepared jewelryItems for webhook', { 
+        itemCount: cleanedItems.length,
         hasCheckoutToken: !!checkoutToken,
-        hasCartToken: !!cartToken 
+        hasCartToken: !!finalCartToken,
+        cartTokenSource: existingCartToken ? 'jewelry_items' : (extractedCartToken ? 'extraction' : 'session_storage')
       });
       
       // Prepare the webhook payload
@@ -560,22 +580,27 @@ document.addEventListener('DOMContentLoaded', function() {
       sessionStorage.setItem('redyoos_session_id', sessionId);
       
       const payload = {
+        // Top-level identifiers and tokens
         correlationId: correlationId,
         sessionId: sessionId,
-        orderCompletionTimestamp: new Date().toISOString(),
+        checkout_token: checkoutToken || null,
+        cart_token: finalCartToken || null,
+        
+        // Event information
         event: 'jewelry_order_completed_with_tokens',
         source: 'redyoos_shopify_order',
         version: '2.0',
-        jewelryItems: enhancedItems,
-        jewelryItemsCount: enhancedItems.length,
-        jewelryItemsSummary: enhancedItems.map(item => 
+        orderCompletionTimestamp: new Date().toISOString(),
+        token_extraction_timestamp: new Date().toISOString(),
+        
+        // Jewelry data (without tokens in each item)
+        jewelryItems: cleanedItems,
+        jewelryItemsCount: cleanedItems.length,
+        jewelryItemsSummary: cleanedItems.map(item => 
           `${item.jewelry_type || 'jewelry'} ($${item.estimated_value_min || 'N/A'}-$${item.estimated_value_max || 'N/A'})`
         ).join(', '),
-        tokens: {
-          checkout_token: checkoutToken,
-          cart_token: cartToken,
-          extraction_timestamp: new Date().toISOString()
-        },
+        
+        // Metadata
         metadata: {
           userAgent: navigator.userAgent,
           url: window.location.href,
@@ -646,12 +671,178 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // =================================================================
+  // CART TOKEN ATTACHMENT
+  // =================================================================
+  
+  /**
+   * Attaches cart_token to existing jewelryItems when on cart page
+   */
+  function attachCartTokenToJewelryItems() {
+    // Check if we're on the cart page
+    const isCartPage = window.location.pathname.includes('/cart') || 
+                      document.querySelector('.cart') ||
+                      document.querySelector('#cart') ||
+                      document.querySelector('.cart-form');
+    
+    if (!isCartPage) {
+      log('Not on cart page, skipping cart token attachment');
+      return;
+    }
+    
+    log('On cart page, attempting to attach cart token to jewelryItems');
+    
+    // Get existing jewelryItems from sessionStorage
+    const jewelryItemsData = sessionStorage.getItem('jewelryItems');
+    if (!jewelryItemsData) {
+      log('No jewelryItems found in sessionStorage on cart page');
+      return;
+    }
+    
+    let jewelryItems;
+    try {
+      jewelryItems = JSON.parse(jewelryItemsData);
+    } catch (error) {
+      log('Error parsing jewelryItems on cart page', error);
+      return;
+    }
+    
+    // Extract cart token using multiple methods
+    let cartToken = null;
+    
+    // Method 1: From Shopify global object
+    if (typeof Shopify !== 'undefined' && Shopify.cart && Shopify.cart.token) {
+      cartToken = Shopify.cart.token;
+      log('Extracted cart_token from Shopify.cart on cart page', cartToken);
+    }
+    
+    // Method 2: From meta tags
+    if (!cartToken) {
+      const cartMeta = document.querySelector('meta[name="shopify-cart-token"]');
+      if (cartMeta) {
+        cartToken = cartMeta.getAttribute('content');
+        log('Extracted cart_token from meta tag on cart page', cartToken);
+      }
+    }
+    
+    // Method 3: From form data attributes
+    if (!cartToken) {
+      const cartForm = document.querySelector('#cart, .cart-form');
+      if (cartForm) {
+        const tokenInput = cartForm.querySelector('input[name="token"]');
+        if (tokenInput) {
+          cartToken = tokenInput.value;
+          log('Extracted cart_token from form input on cart page', cartToken);
+        }
+        
+        // Also check data attributes
+        if (!cartToken && cartForm.dataset.cartToken) {
+          cartToken = cartForm.dataset.cartToken;
+          log('Extracted cart_token from form data attribute on cart page', cartToken);
+        }
+      }
+    }
+    
+    // Method 4: From window.theme or other theme globals
+    if (!cartToken && typeof window.theme !== 'undefined' && window.theme.cart_token) {
+      cartToken = window.theme.cart_token;
+      log('Extracted cart_token from window.theme on cart page', cartToken);
+    }
+    
+    if (cartToken) {
+      // Check if items already have this cart_token
+      const needsUpdate = jewelryItems.some(item => 
+        !item.cart_token || item.cart_token !== cartToken
+      );
+      
+      if (needsUpdate) {
+        // Attach cart_token to each jewelry item
+        const updatedItems = jewelryItems.map(item => ({
+          ...item,
+          cart_token: cartToken,
+          cart_token_attached_timestamp: new Date().toISOString(),
+          cart_token_source: 'cart_page_attachment'
+        }));
+        
+        // Store updated items back to sessionStorage
+        sessionStorage.setItem('jewelryItems', JSON.stringify(updatedItems));
+        log('Successfully attached cart_token to jewelryItems', {
+          cartToken: cartToken,
+          itemCount: updatedItems.length
+        });
+        
+        // Also store cart token separately for later use
+        sessionStorage.setItem('redyoos_cart_token', cartToken);
+      } else {
+        log('JewelryItems already have current cart_token, no update needed');
+      }
+      
+    } else {
+      log('No cart_token found on cart page');
+    }
+  }
+  
+  /**
+   * Monitors for cart token changes and updates jewelryItems accordingly
+   */
+  function monitorCartTokenChanges() {
+    let lastCartToken = sessionStorage.getItem('redyoos_cart_token');
+    
+    // Check for cart token changes periodically
+    const cartTokenMonitor = setInterval(() => {
+      let currentCartToken = null;
+      
+      // Try to get current cart token
+      if (typeof Shopify !== 'undefined' && Shopify.cart && Shopify.cart.token) {
+        currentCartToken = Shopify.cart.token;
+      }
+      
+      // If cart token changed, update jewelryItems
+      if (currentCartToken && currentCartToken !== lastCartToken) {
+        log('Cart token changed, updating jewelryItems', {
+          oldToken: lastCartToken,
+          newToken: currentCartToken
+        });
+        
+        const jewelryItemsData = sessionStorage.getItem('jewelryItems');
+        if (jewelryItemsData) {
+          try {
+            const jewelryItems = JSON.parse(jewelryItemsData);
+            const updatedItems = jewelryItems.map(item => ({
+              ...item,
+              cart_token: currentCartToken,
+              cart_token_attached_timestamp: new Date().toISOString(),
+              cart_token_source: 'token_change_monitor'
+            }));
+            
+            sessionStorage.setItem('jewelryItems', JSON.stringify(updatedItems));
+            sessionStorage.setItem('redyoos_cart_token', currentCartToken);
+            log('Updated jewelryItems with new cart token');
+          } catch (error) {
+            log('Error updating jewelryItems with new cart token', error);
+          }
+        }
+        
+        lastCartToken = currentCartToken;
+      }
+    }, 3000); // Check every 3 seconds
+    
+    // Stop monitoring after 10 minutes to prevent endless checking
+    setTimeout(() => clearInterval(cartTokenMonitor), 600000);
+  }
+
+  // =================================================================
   // INITIALIZATION
   // =================================================================
   
   // Initialize order completion detection
   function initializeOrderCompletionWebhook() {
     log('Initializing Redyoos Order Webhook');
+    
+    // First, try to attach cart token if on cart page
+    attachCartTokenToJewelryItems();
+    
+    // Start monitoring cart token changes
+    monitorCartTokenChanges();
     
     // Start detecting order completion
     detectOrderCompletion();
@@ -666,8 +857,37 @@ document.addEventListener('DOMContentLoaded', function() {
       if (isCompletionPage) {
         log('Already on order completion page, processing immediately');
         processOrderCompletionWebhook();
+      } else {
+        // If not on completion page, try to attach cart token again with delay
+        setTimeout(() => {
+          attachCartTokenToJewelryItems();
+        }, 2000);
       }
     }, 500);
+    
+    // Re-attach cart token when navigating to cart page
+    window.addEventListener('popstate', () => {
+      setTimeout(() => {
+        attachCartTokenToJewelryItems();
+      }, 1000);
+    });
+    
+    // Also monitor URL changes for SPA-style navigation to cart
+    let lastUrl = window.location.href;
+    const urlWatcher = setInterval(() => {
+      if (window.location.href !== lastUrl) {
+        if (window.location.href.includes('/cart')) {
+          log('Navigated to cart page, attaching cart token');
+          setTimeout(() => {
+            attachCartTokenToJewelryItems();
+          }, 1000);
+        }
+        lastUrl = window.location.href;
+      }
+    }, 2000);
+    
+    // Stop URL watching after 10 minutes
+    setTimeout(() => clearInterval(urlWatcher), 600000);
     
     log('Redyoos Order Webhook initialized');
   }
