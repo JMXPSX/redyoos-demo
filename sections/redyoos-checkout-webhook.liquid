@@ -1,0 +1,262 @@
+{% comment %}
+  REDYOOS CHECKOUT WEBHOOK INTEGRATION
+  
+  This section handles sending jewelryItems sessionStorage data to a webhook
+  when the user clicks the checkout button, then clears the sessionStorage.
+  
+  Purpose: Track jewelry items data during checkout process
+  Integration: Invisible section that attaches to existing Shopify checkout button
+  
+  WEBHOOK CONFIGURATION:
+  - Endpoint URL: https://webhook.site/50c62f38-7160-47fe-9cd8-76b3ad37d796
+  - Method: POST
+  - Payload: JSON with jewelryItems data and metadata
+  
+  FUNCTIONALITY:
+  1. Intercepts clicks on #checkout button (main-cart-footer.liquid)
+  2. Retrieves jewelryItems from sessionStorage
+  3. Sends data to webhook endpoint
+  4. Clears jewelryItems from sessionStorage
+  5. Continues normal Shopify checkout process
+  
+  ERROR HANDLING:
+  - Graceful fallback if webhook fails
+  - Checkout process continues regardless
+  - Console logging for debugging
+{% endcomment %}
+
+{% schema %}
+{
+  "name": "Redyoos Checkout Webhook",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Webhook Configuration"
+    },
+    {
+      "type": "text",
+      "id": "webhook_url",
+      "label": "Webhook Endpoint URL",
+      "default": "https://webhook.site/50c62f38-7160-47fe-9cd8-76b3ad37d796",
+      "info": "URL where jewelryItems data will be sent during checkout"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_logging",
+      "label": "Enable Console Logging",
+      "default": true,
+      "info": "Enable debugging logs in browser console"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Redyoos Checkout Webhook",
+      "category": "Redyoos"
+    }
+  ]
+}
+{% endschema %}
+
+<!-- REDYOOS CHECKOUT WEBHOOK HANDLER -->
+<!-- This section is invisible and only contains JavaScript functionality -->
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // =================================================================
+  // REDYOOS CHECKOUT WEBHOOK INTEGRATION
+  // =================================================================
+  
+  // Configuration
+  const WEBHOOK_URL = {{ section.settings.webhook_url | json }};
+  const ENABLE_LOGGING = {{ section.settings.enable_logging | json }};
+  
+  // Logging utility
+  function log(message, data = null) {
+    if (ENABLE_LOGGING) {
+      if (data) {
+        console.log(`[REDYOOS WEBHOOK] ${message}`, data);
+      } else {
+        console.log(`[REDYOOS WEBHOOK] ${message}`);
+      }
+    }
+  }
+  
+  // =================================================================
+  // JEWELRY ITEMS WEBHOOK FUNCTIONALITY
+  // =================================================================
+  
+  /**
+   * Sends jewelryItems sessionStorage data to webhook endpoint
+   * @returns {Promise<boolean>} True if successful or should continue, false to halt
+   */
+  async function sendJewelryItemsToWebhook() {
+    try {
+      // Get jewelryItems from sessionStorage
+      const jewelryItemsData = sessionStorage.getItem('jewelryItems');
+      
+      if (!jewelryItemsData) {
+        log('No jewelryItems found in sessionStorage - continuing with checkout');
+        return true; // Continue with checkout even if no jewelry data
+      }
+
+      const jewelryItems = JSON.parse(jewelryItemsData);
+      log('Retrieved jewelryItems from sessionStorage', { count: jewelryItems.length, items: jewelryItems });
+
+      // Prepare webhook payload
+      const payload = {
+        timestamp: new Date().toISOString(),
+        event: 'checkout_initiated',
+        source: 'redyoos_shopify_checkout',
+        jewelryItems: jewelryItems,
+        metadata: {
+          userAgent: navigator.userAgent,
+          url: window.location.href,
+          cartTotal: document.querySelector('.totals__total-value')?.textContent?.trim() || 'N/A',
+          cartItemCount: document.querySelectorAll('.cart-item').length || 0
+        }
+      };
+
+      log('Sending payload to webhook', payload);
+
+      // Send to webhook endpoint
+      const response = await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Webhook-Source': 'redyoos-checkout'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        log('Successfully sent jewelryItems to webhook');
+        
+        // Clear jewelryItems from sessionStorage after successful send
+        sessionStorage.removeItem('jewelryItems');
+        log('Cleared jewelryItems from sessionStorage');
+        
+        return true;
+      } else {
+        log(`Webhook request failed with status: ${response.status}`, {
+          status: response.status,
+          statusText: response.statusText
+        });
+        return true; // Continue with checkout even if webhook fails
+      }
+    } catch (error) {
+      log('Error in webhook process', error);
+      return true; // Continue with checkout even if error occurs
+    }
+  }
+
+  // =================================================================
+  // CHECKOUT BUTTON INTERCEPTION
+  // =================================================================
+  
+  /**
+   * Enhances the existing Shopify checkout button with webhook functionality
+   */
+  function enhanceCheckoutButton() {
+    const checkoutButton = document.querySelector('#checkout');
+    
+    if (!checkoutButton) {
+      log('Checkout button (#checkout) not found - webhook integration skipped');
+      return;
+    }
+    
+    log('Found checkout button, adding webhook integration');
+    
+    // Add event listener to intercept checkout clicks
+    checkoutButton.addEventListener('click', async function(event) {
+      log('Checkout button clicked - processing jewelryItems webhook');
+      
+      // Prevent default form submission temporarily
+      event.preventDefault();
+      event.stopPropagation();
+      
+      // Show loading state (optional)
+      const originalText = checkoutButton.textContent;
+      checkoutButton.textContent = 'Processing...';
+      checkoutButton.disabled = true;
+      
+      try {
+        // Send jewelryItems to webhook and clear sessionStorage
+        const canProceed = await sendJewelryItemsToWebhook();
+        
+        if (canProceed) {
+          log('Webhook processing complete - continuing with checkout');
+          
+          // Continue with normal Shopify checkout process
+          const cartForm = document.querySelector('#cart');
+          if (cartForm) {
+            // Create a new form submission to bypass our event listener
+            const formData = new FormData(cartForm);
+            cartForm.submit();
+          } else {
+            // Fallback: navigate to checkout URL
+            window.location.href = '/cart';
+          }
+        }
+      } catch (error) {
+        log('Error in checkout webhook process', error);
+        
+        // Restore button and continue with normal checkout
+        checkoutButton.textContent = originalText;
+        checkoutButton.disabled = false;
+        
+        const cartForm = document.querySelector('#cart');
+        if (cartForm) {
+          cartForm.submit();
+        }
+      }
+    }, true); // Use capture phase to intercept before other handlers
+    
+    log('Checkout button webhook integration completed');
+  }
+  
+  // =================================================================
+  // INITIALIZATION
+  // =================================================================
+  
+  // Wait for DOM to be fully loaded, then enhance checkout button
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', enhanceCheckoutButton);
+  } else {
+    enhanceCheckoutButton();
+  }
+  
+  // Also try after a short delay in case elements are dynamically loaded
+  setTimeout(enhanceCheckoutButton, 1000);
+  
+  log('Redyoos Checkout Webhook integration initialized');
+});
+</script>
+
+<!-- 
+  INTEGRATION INSTRUCTIONS:
+  
+  To activate this webhook integration:
+  
+  1. Add this section to your cart page:
+     - Go to Shopify Admin > Online Store > Themes
+     - Edit the active theme
+     - Navigate to cart.json template
+     - Add "redyoos-checkout-webhook" to the sections list
+     
+  2. Or add via theme customizer:
+     - Go to cart page in theme customizer
+     - Add section > Redyoos Checkout Webhook
+     - Configure webhook URL if needed
+     
+  3. The section will automatically:
+     - Attach to existing checkout button
+     - Send jewelryItems data on checkout
+     - Clear sessionStorage after successful send
+     - Continue normal Shopify checkout process
+     
+  TROUBLESHOOTING:
+  - Check browser console for "[REDYOOS WEBHOOK]" logs
+  - Verify jewelryItems exists in sessionStorage
+  - Test webhook endpoint URL separately
+  - Ensure checkout button has id="checkout"
+-->
