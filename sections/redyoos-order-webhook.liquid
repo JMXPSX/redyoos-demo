@@ -659,8 +659,39 @@ document.addEventListener('DOMContentLoaded', function() {
       sessionStorage.setItem('redyoos_correlation_id', correlationId);
       sessionStorage.setItem('redyoos_session_id', sessionId);
       
+      // Prepare session-based payload for your backend correlation
+      const sessionBasedPayload = {
+        // Session ID for correlation (matches what will be in order.note_attributes)
+        session_id: sessionStorage.getItem('custom_session_id'),
+        
+        // Events data (jewelryItems) as requested
+        events: {
+          jewelryItems: cleanedItems,
+          jewelryItemsCount: cleanedItems.length,
+          jewelryItemsSummary: cleanedItems.map(item => 
+            `${item.calculatedValues?.metalType || 'jewelry'} (${item.calculatedValues?.afterFeesValue || 'N/A'})`
+          ).join(', '),
+          
+          // Additional event context
+          eventType: 'jewelry_order_completed',
+          timestamp: new Date().toISOString(),
+          source: 'redyoos_frontend_session'
+        },
+        
+        // Metadata for debugging and correlation
+        metadata: {
+          correlationId: correlationId,
+          sessionId: sessionId,
+          checkout_token: finalCheckoutToken || null,
+          cart_token: finalCartToken || null,
+          url: window.location.href,
+          userAgent: navigator.userAgent,
+          hasEnrichmentData: !!enrichmentData
+        }
+      };
+
       const payload = {
-        // Top-level identifiers and tokens
+        // Top-level identifiers and tokens (legacy format for existing systems)
         correlationId: correlationId,
         sessionId: sessionId,
         checkout_token: finalCheckoutToken || null,
@@ -673,11 +704,14 @@ document.addEventListener('DOMContentLoaded', function() {
         orderCompletionTimestamp: new Date().toISOString(),
         token_extraction_timestamp: new Date().toISOString(),
         
+        // NEW: Session-based payload for your backend correlation
+        session_payload: sessionBasedPayload,
+        
         // Jewelry data (without tokens in each item)
         jewelryItems: cleanedItems,
         jewelryItemsCount: cleanedItems.length,
         jewelryItemsSummary: cleanedItems.map(item => 
-          `${item.jewelry_type || 'jewelry'} ($${item.estimated_value_min || 'N/A'}-$${item.estimated_value_max || 'N/A'})`
+          `${item.calculatedValues?.metalType || 'jewelry'} (${item.calculatedValues?.afterFeesValue || 'N/A'})`
         ).join(', '),
         
         // Metadata (enhanced with enrichment approach)
@@ -723,6 +757,11 @@ document.addEventListener('DOMContentLoaded', function() {
       };
       
       log('Sending enhanced payload to webhook', payload);
+      log('Session-based payload for correlation', sessionBasedPayload);
+      
+      // STEP 3: Send session payload to your dedicated backend endpoint
+      // This matches your requested format: {session_id, events}
+      await sendSessionPayloadToBackend(sessionBasedPayload);
       
       let success = false;
       
@@ -1210,6 +1249,208 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // =================================================================
+  // SESSION ID INJECTION TO CART ATTRIBUTES
+  // =================================================================
+  
+  /**
+   * Injects session_id as hidden input into all cart forms (DOM manipulation method)
+   */
+  function injectSessionIdToCartForms() {
+    const sessionId = sessionStorage.getItem('custom_session_id');
+    if (!sessionId) {
+      log('No session ID found, skipping cart form injection');
+      return;
+    }
+    
+    // Find all potential cart forms
+    const cartForms = document.querySelectorAll([
+      'form[action*="/cart"]',
+      'form[data-type="add-to-cart-form"]', 
+      '#cart',
+      '.cart-form',
+      'form[name="cart"]'
+    ].join(', '));
+    
+    let injectedCount = 0;
+    cartForms.forEach(form => {
+      // Check if session_id input already exists
+      if (!form.querySelector('input[name="attributes[session_id]"]')) {
+        const sessionIdInput = document.createElement('input');
+        sessionIdInput.type = 'hidden';
+        sessionIdInput.name = 'attributes[session_id]';
+        sessionIdInput.id = 'session_id_input_' + Date.now();
+        sessionIdInput.value = sessionId;
+        form.appendChild(sessionIdInput);
+        injectedCount++;
+      }
+    });
+    
+    if (injectedCount > 0) {
+      log(`Injected session_id into ${injectedCount} cart forms`, sessionId);
+    }
+  }
+  
+  /**
+   * Intercepts form submissions and adds session_id dynamically
+   */
+  function interceptFormSubmissions() {
+    document.addEventListener('submit', function(event) {
+      const form = event.target;
+      const sessionId = sessionStorage.getItem('custom_session_id');
+      
+      if (!sessionId) return;
+      
+      // Check if this is a cart/checkout related form
+      const isCartForm = form.action.includes('/cart') || 
+                        form.dataset.type === 'add-to-cart-form' ||
+                        form.action.includes('/checkout') ||
+                        form.classList.contains('cart-form') ||
+                        form.id === 'cart';
+      
+      if (isCartForm && !form.querySelector('input[name="attributes[session_id]"]')) {
+        const sessionIdInput = document.createElement('input');
+        sessionIdInput.type = 'hidden';
+        sessionIdInput.name = 'attributes[session_id]';
+        sessionIdInput.value = sessionId;
+        form.appendChild(sessionIdInput);
+        log('Dynamically added session_id to form submission', sessionId);
+      }
+    });
+  }
+
+  /**
+   * Updates cart attributes via Shopify AJAX API (most reliable method)
+   */
+  async function attachSessionIdToCartViaAJAX() {
+    const sessionId = sessionStorage.getItem('custom_session_id');
+    if (!sessionId) {
+      log('No session ID found, skipping AJAX cart update');
+      return false;
+    }
+    
+    try {
+      const response = await fetch('/cart/update.js', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          attributes: {
+            'session_id': sessionId
+          }
+        })
+      });
+      
+      if (response.ok) {
+        const cartData = await response.json();
+        log('Successfully attached session_id to cart via AJAX', sessionId);
+        return true;
+      } else {
+        log('Failed to attach session_id via AJAX', response.status);
+        return false;
+      }
+    } catch (error) {
+      log('Error attaching session_id via AJAX', error);
+      return false;
+    }
+  }
+  
+  /**
+   * Comprehensive session ID attachment using multiple methods
+   */
+  async function attachSessionIdToCart() {
+    const sessionId = sessionStorage.getItem('custom_session_id');
+    if (!sessionId) {
+      log('No session ID found, skipping all attachment methods');
+      return;
+    }
+    
+    log('Starting comprehensive session_id attachment', sessionId);
+    
+    // Method 1: AJAX cart update (most reliable)
+    const ajaxSuccess = await attachSessionIdToCartViaAJAX();
+    
+    // Method 2: DOM injection (backup)
+    injectSessionIdToCartForms();
+    
+    // Method 3: Form submission interception (final backup)  
+    interceptFormSubmissions();
+    
+    // Retry DOM injection periodically for dynamically loaded forms
+    setTimeout(() => injectSessionIdToCartForms(), 2000);
+    setTimeout(() => injectSessionIdToCartForms(), 5000);
+    
+    log('Completed session_id attachment using all methods');
+  }
+
+  // =================================================================
+  // SESSION PAYLOAD BACKEND COMMUNICATION
+  // =================================================================
+  
+  /**
+   * Sends session-based payload to your backend endpoint for correlation
+   * Format: { session_id: "...", events: {...} }
+   */
+  async function sendSessionPayloadToBackend(sessionPayload) {
+    // You can customize this endpoint URL via the webhook settings
+    const sessionEndpoint = WEBHOOK_URL; // For now using same endpoint, but you can change this
+    
+    if (!sessionPayload.session_id) {
+      log('No session_id in payload, skipping session backend call');
+      return false;
+    }
+    
+    try {
+      log('Sending session payload to backend for correlation', sessionPayload);
+      
+      // Use multiple sending methods for reliability
+      let success = false;
+      
+      // Method 1: sendBeacon (most reliable for cross-origin)
+      const payloadString = JSON.stringify(sessionPayload);
+      success = navigator.sendBeacon(sessionEndpoint, payloadString);
+      
+      if (success) {
+        log('Session payload sent successfully via sendBeacon');
+        return true;
+      }
+      
+      // Method 2: Fetch with no-cors mode (backup)
+      try {
+        await fetch(sessionEndpoint, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Webhook-Source': 'redyoos-session-payload'
+          },
+          body: payloadString
+        });
+        
+        log('Session payload sent successfully via no-cors fetch');
+        return true;
+      } catch (fetchError) {
+        log('No-cors fetch failed for session payload', fetchError);
+      }
+      
+      // Method 3: Final beacon attempt with blob
+      try {
+        const blob = new Blob([payloadString], { type: 'application/json' });
+        success = navigator.sendBeacon(sessionEndpoint, blob);
+        log('Session payload beacon attempt result:', success);
+        return success;
+      } catch (blobError) {
+        log('All session payload sending methods failed', blobError);
+        return false;
+      }
+      
+    } catch (error) {
+      log('Error sending session payload to backend', error);
+      return false;
+    }
+  }
+
+  // =================================================================
   // INITIALIZATION
   // =================================================================
   
@@ -1217,7 +1458,10 @@ document.addEventListener('DOMContentLoaded', function() {
   async function initializeOrderCompletionWebhook() {
     log('Initializing Redyoos Order Webhook');
     
-    // First, try to attach cart token if on cart page
+    // First, attach session ID to cart using multiple methods
+    await attachSessionIdToCart();
+    
+    // Then, try to attach cart token if on cart page
     await attachCartTokenToJewelryItems();
     
     // Store enrichment data if we have jewelryItems
@@ -1250,20 +1494,24 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }, 500);
     
-    // Re-attach cart token when navigating to cart page
+    // Re-attach session ID and cart token when navigating
     window.addEventListener('popstate', () => {
       setTimeout(async () => {
+        await attachSessionIdToCart();
         await attachCartTokenToJewelryItems();
       }, 1000);
     });
     
-    // Also monitor URL changes for SPA-style navigation to cart
+    // Also monitor URL changes for SPA-style navigation
     let lastUrl = window.location.href;
     const urlWatcher = setInterval(() => {
       if (window.location.href !== lastUrl) {
-        if (window.location.href.includes('/cart')) {
-          log('Navigated to cart page, attaching cart token');
+        if (window.location.href.includes('/cart') || 
+            window.location.href.includes('/product') ||
+            window.location.href.includes('/checkout')) {
+          log('Navigated to cart/product/checkout page, re-attaching session ID and cart token');
           setTimeout(async () => {
+            await attachSessionIdToCart();
             await attachCartTokenToJewelryItems();
           }, 1000);
         }
@@ -1271,8 +1519,32 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }, 2000);
     
-    // Stop URL watching after 10 minutes
-    setTimeout(() => clearInterval(urlWatcher), 600000);
+    // Periodic session ID reattachment to ensure it's always present
+    const sessionIdWatcher = setInterval(async () => {
+      const sessionId = sessionStorage.getItem('custom_session_id');
+      if (sessionId) {
+        // Check if cart forms have session ID, if not, re-attach
+        const cartForms = document.querySelectorAll('form[action*="/cart"], form[data-type="add-to-cart-form"]');
+        let needsReattach = false;
+        
+        cartForms.forEach(form => {
+          if (!form.querySelector('input[name="attributes[session_id]"]')) {
+            needsReattach = true;
+          }
+        });
+        
+        if (needsReattach) {
+          log('Session ID missing from cart forms, reattaching');
+          await attachSessionIdToCart();
+        }
+      }
+    }, 10000); // Check every 10 seconds
+    
+    // Stop watchers after 15 minutes
+    setTimeout(() => {
+      clearInterval(urlWatcher);
+      clearInterval(sessionIdWatcher);
+    }, 900000);
     
     log('Redyoos Order Webhook initialized');
   }

@@ -594,6 +594,19 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+  // =================================================================
+  // SESSION ID GENERATION FOR ORDER CORRELATION
+  // =================================================================
+  
+  // Generate unique session ID if it doesn't exist
+  if (!sessionStorage.getItem("custom_session_id")) {
+    const sessionId = Date.now() + "-" + Math.random().toString(36).substr(2, 9);
+    sessionStorage.setItem("custom_session_id", sessionId);
+    console.log('[REDYOOS SESSION] Generated new session ID:', sessionId);
+  } else {
+    console.log('[REDYOOS SESSION] Using existing session ID:', sessionStorage.getItem("custom_session_id"));
+  }
+  
   // DOM Elements
   const metalSelect = document.getElementById('metal-select');
   const puritySelect = document.getElementById('purity-select');
@@ -812,6 +825,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
       const jewelryItem = {
         id: Date.now(),
+        session_id: sessionStorage.getItem('custom_session_id'),
         images: currentImages ? JSON.parse(currentImages) : [],
         calculatedValues: calculatedValues,
         timestamp: new Date().toISOString()
@@ -822,17 +836,17 @@ document.addEventListener('DOMContentLoaded', function() {
         const itemIndex = parseInt(currentItemIndex);
         if (itemIndex < jewelryItems.length) {
           jewelryItems[itemIndex] = { ...jewelryItems[itemIndex], ...jewelryItem };
-          console.log(`Updated jewelry item at index ${itemIndex}`);
+          console.log(`[REDYOOS SESSION] Updated jewelry item at index ${itemIndex} with session_id:`, jewelryItem.session_id);
         } else {
           jewelryItems.push(jewelryItem);
-          console.log('Added new jewelry item (index was out of range)');
+          console.log('[REDYOOS SESSION] Added new jewelry item (index was out of range) with session_id:', jewelryItem.session_id);
         }
         // Clear the current item index
         sessionStorage.removeItem('currentJewelryItemIndex');
       } else {
         // Add new item
         jewelryItems.push(jewelryItem);
-        console.log('Added new jewelry item');
+        console.log('[REDYOOS SESSION] Added new jewelry item with session_id:', jewelryItem.session_id);
       }
 
       sessionStorage.setItem('jewelryItems', JSON.stringify(jewelryItems));
