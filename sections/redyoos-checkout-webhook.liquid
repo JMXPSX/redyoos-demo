@@ -118,23 +118,41 @@ document.addEventListener('DOMContentLoaded', function() {
 
       log('Sending payload to webhook', payload);
 
-      // Send to webhook endpoint with CORS handling
-      const response = await fetch(WEBHOOK_URL, {
-        method: 'POST',
-        mode: 'no-cors', // This prevents CORS errors but limits response access
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Webhook-Source': 'redyoos-checkout'
-        },
-        body: JSON.stringify(payload)
-      });
-
-      // With no-cors mode, we can't check response status, so assume success
-      log('Webhook request sent (no-cors mode - cannot verify response)');
+      // Use sendBeacon for reliable data sending during page navigation
+      const success = navigator.sendBeacon(WEBHOOK_URL, JSON.stringify(payload));
       
-      // Clear jewelryItems from sessionStorage after sending
-      sessionStorage.removeItem('jewelryItems');
-      log('Cleared jewelryItems from sessionStorage');
+      if (success) {
+        log('Webhook sent successfully using sendBeacon');
+        // Clear jewelryItems from sessionStorage after successful send
+        sessionStorage.removeItem('jewelryItems');
+        log('Cleared jewelryItems from sessionStorage');
+      } else {
+        log('SendBeacon failed, trying fetch as fallback');
+        
+        // Fallback to fetch with no-cors
+        try {
+          await fetch(WEBHOOK_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Webhook-Source': 'redyoos-checkout'
+            },
+            body: JSON.stringify(payload)
+          });
+          
+          log('Fallback fetch completed');
+          // Clear sessionStorage after fallback attempt
+          sessionStorage.removeItem('jewelryItems');
+          log('Cleared jewelryItems from sessionStorage');
+          
+        } catch (fetchError) {
+          log('Fetch fallback also failed, but clearing sessionStorage anyway', fetchError);
+          // Clear sessionStorage even if webhook fails to prevent repeated attempts
+          sessionStorage.removeItem('jewelryItems');
+          log('Cleared jewelryItems from sessionStorage (after failure)');
+        }
+      }
       
       return true;
     } catch (error) {
