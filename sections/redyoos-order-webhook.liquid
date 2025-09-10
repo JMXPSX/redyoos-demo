@@ -63,6 +63,18 @@
 <!-- REDYOOS ORDER WEBHOOK HANDLER -->
 <!-- This section is invisible and only contains JavaScript functionality -->
 
+<!-- CORS BYPASS INTEGRATION -->
+<!-- For CORS-free webhook sending, ensure the redyoos-webhook-proxy section is included -->
+<!-- Add {% section 'redyoos-webhook-proxy' %} to your theme template or include it here -->
+{% comment %}
+  CORS SOLUTION INTEGRATION:
+  To use the CORS bypass solution, add this line to your template:
+  {% section 'redyoos-webhook-proxy' %}
+  
+  Or uncomment the line below to include it directly:
+{% endcomment %}
+{% comment %} {% section 'redyoos-webhook-proxy' %} {% endcomment %}
+
 <!-- Inject Shopify cart data directly from Liquid -->
 <script id="shopify-cart-data" type="application/json">
 {
@@ -714,50 +726,98 @@ document.addEventListener('DOMContentLoaded', function() {
       
       let success = false;
       
-      if (beaconOnly) {
-        // Use beacon for immediate sending during page unload
-        success = navigator.sendBeacon(WEBHOOK_URL, JSON.stringify(payload));
-        log('Beacon send result:', success);
-      } else {
-        // Try multiple sending methods
-        try {
-          // Method 1: Regular fetch
-          const response = await fetch(WEBHOOK_URL, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Webhook-Source': 'redyoos-order-completion'
-            },
-            body: JSON.stringify(payload)
-          });
-          
-          if (response.ok) {
-            success = true;
-            log('Webhook sent successfully via fetch');
-          } else {
-            log('Fetch response not ok:', response.status, response.statusText);
+      // Check if RedyoosWebhookProxy is available (CORS bypass solution)
+      if (typeof window.RedyoosWebhookProxy !== 'undefined') {
+        log('Using RedyoosWebhookProxy for CORS-safe webhook sending');
+        
+        // Use the CORS proxy with callback
+        window.RedyoosWebhookProxy.send(payload, {
+          maxRetries: beaconOnly ? 1 : 3,
+          retryDelay: beaconOnly ? 0 : 1000,
+          callback: function(proxySuccess, method) {
+            if (proxySuccess) {
+              log(`Webhook sent successfully via RedyoosWebhookProxy using ${method}`);
+              success = true;
+              handleWebhookResult(true);
+            } else {
+              log('RedyoosWebhookProxy failed, falling back to direct methods');
+              success = false;
+              fallbackToDirectMethods();
+            }
           }
-        } catch (fetchError) {
-          log('Fetch failed, trying beacon fallback', fetchError);
-          
-          // Method 2: Beacon fallback
+        });
+        
+        // Return early since we're using async callback
+        return;
+        
+      } else {
+        log('RedyoosWebhookProxy not available, using direct methods');
+        fallbackToDirectMethods();
+      }
+      
+      function fallbackToDirectMethods() {
+        if (beaconOnly) {
+          // Use beacon for immediate sending during page unload
           success = navigator.sendBeacon(WEBHOOK_URL, JSON.stringify(payload));
-          log('Beacon fallback result:', success);
+          log('Beacon send result:', success);
+          handleWebhookResult(success);
+        } else {
+          // Try multiple sending methods (prioritize CORS-friendly approaches)
+          
+          // Method 1: sendBeacon (most reliable for cross-origin)
+          success = navigator.sendBeacon(WEBHOOK_URL, JSON.stringify(payload));
+          if (success) {
+            log('Webhook sent successfully via sendBeacon');
+            handleWebhookResult(true);
+          } else {
+            log('SendBeacon failed, trying no-cors fetch');
+            
+            // Method 2: Fetch with no-cors mode (doesn't read response but sends data)
+            fetch(WEBHOOK_URL, {
+              method: 'POST',
+              mode: 'no-cors', // This bypasses CORS restrictions
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(payload)
+            }).then(() => {
+              // In no-cors mode, we can't read the response, so assume success
+              success = true;
+              log('Webhook sent successfully via no-cors fetch');
+              handleWebhookResult(true);
+            }).catch(noCorsError => {
+              log('No-cors fetch also failed, trying final beacon attempt', noCorsError);
+              
+              // Method 3: Final beacon attempt with blob
+              try {
+                const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+                success = navigator.sendBeacon(WEBHOOK_URL, blob);
+                log('Final beacon attempt result:', success);
+                handleWebhookResult(success);
+              } catch (blobError) {
+                log('All sending methods failed', blobError);
+                success = false;
+                handleWebhookResult(false);
+              }
+            });
+          }
         }
       }
       
-      if (success) {
-        // Mark as successfully sent
-        sessionStorage.setItem('redyoos_last_webhook_sent', Date.now().toString());
+      function handleWebhookResult(webhookSuccess) {
+        if (webhookSuccess) {
+          // Mark as successfully sent
+          sessionStorage.setItem('redyoos_last_webhook_sent', Date.now().toString());
+          
+          // Clear jewelryItems from sessionStorage after successful send
+          sessionStorage.removeItem('jewelryItems');
+          sessionStorage.removeItem('redyoos_checkout_initiated');
+          log('Cleared jewelryItems and checkout flags from sessionStorage');
+        }
         
-        // Clear jewelryItems from sessionStorage after successful send
-        sessionStorage.removeItem('jewelryItems');
-        sessionStorage.removeItem('redyoos_checkout_initiated');
-        log('Cleared jewelryItems and checkout flags from sessionStorage');
+        log('Order completion webhook process completed', { success: webhookSuccess });
+        return webhookSuccess;
       }
-      
-      log('Order completion webhook process completed', { success });
-      return success;
       
     } catch (error) {
       log('Error in order completion webhook process', error);
@@ -1245,21 +1305,36 @@ document.addEventListener('DOMContentLoaded', function() {
      - Add section > Redyoos Order Webhook
      - Configure webhook URL if needed
      
-  3. The section will automatically:
+  3. CORS SOLUTION SETUP (IMPORTANT):
+     To avoid CORS errors, also include the webhook proxy section:
+     - Add {% section 'redyoos-webhook-proxy' %} to your template
+     - Or uncomment the line in the CORS BYPASS INTEGRATION section above
+     - This provides multiple CORS-bypass methods for reliable webhook delivery
+     
+  4. The section will automatically:
      - Detect order completion using multiple methods
      - Extract checkout_token and cart_token from order data
      - Enhance jewelryItems in sessionStorage with tokens
-     - Send enhanced payload to webhook endpoint
+     - Send enhanced payload via CORS-safe methods to webhook endpoint
      - Clear sessionStorage after successful send
      
-  4. Double Payload Flow:
+  5. Double Payload Flow:
      - First: Shopify's orders/create webhook fires (handled by redyoos-order-attributes.liquid)
      - Second: This enhanced jewelryItems webhook fires with tokens
      
+  CORS BYPASS METHODS USED:
+  - Image pixel tracking (most reliable, converts POST to GET)
+  - Navigator.sendBeacon API (designed for analytics)
+  - Hidden form submission to iframe
+  - JSONP-style script injection
+  - No-CORS fetch as fallback
+     
   TROUBLESHOOTING:
   - Check browser console for "[REDYOOS ORDER WEBHOOK]" logs
+  - Look for "[REDYOOS WEBHOOK PROXY]" logs to verify CORS bypass is working
   - Verify jewelryItems exists in sessionStorage
   - Test webhook endpoint URL separately
   - Ensure proper page detection on order completion
   - Check that order tokens are being extracted successfully
+  - If still seeing CORS errors, ensure redyoos-webhook-proxy section is included
 -->

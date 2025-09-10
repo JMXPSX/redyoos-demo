@@ -1,0 +1,278 @@
+{% comment %}
+  WEBHOOK CORS SOLUTION TEST PAGE
+  
+  This page allows you to test the webhook CORS bypass solution.
+  Access it at: /pages/webhook-test
+  
+  Features:
+  - Test the RedyoosWebhookProxy functionality
+  - Verify CORS bypass methods work
+  - Debug webhook delivery issues
+{% endcomment %}
+
+<!-- Include the CORS proxy section -->
+{% section 'redyoos-webhook-proxy' %}
+
+<div class="page-width">
+  <div class="main-page-title">
+    <h1 class="h0">Webhook CORS Solution Test</h1>
+  </div>
+  
+  <div class="rte">
+    <h2>Test the CORS Bypass Webhook Solution</h2>
+    <p>Use the controls below to test webhook delivery without CORS issues.</p>
+    
+    <div style="background: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 8px;">
+      <h3>Webhook Configuration</h3>
+      <p><strong>Target URL:</strong> <code id="webhook-url">Loading...</code></p>
+      <p><strong>Primary Method:</strong> <code id="primary-method">Loading...</code></p>
+      <p><strong>Debug Enabled:</strong> <code id="debug-enabled">Loading...</code></p>
+    </div>
+    
+    <div style="margin: 20px 0;">
+      <h3>Test Controls</h3>
+      <button id="test-basic-webhook" style="background: #008060; color: white; padding: 10px 20px; border: none; border-radius: 4px; margin: 5px;">
+        Test Basic Webhook
+      </button>
+      
+      <button id="test-jewelry-webhook" style="background: #2196F3; color: white; padding: 10px 20px; border: none; border-radius: 4px; margin: 5px;">
+        Test Jewelry Order Webhook
+      </button>
+      
+      <button id="test-all-methods" style="background: #FF9800; color: white; padding: 10px 20px; border: none; border-radius: 4px; margin: 5px;">
+        Test All Methods
+      </button>
+      
+      <button id="clear-logs" style="background: #757575; color: white; padding: 10px 20px; border: none; border-radius: 4px; margin: 5px;">
+        Clear Console
+      </button>
+    </div>
+    
+    <div id="test-results" style="background: #fff; border: 1px solid #ddd; padding: 15px; margin: 20px 0; border-radius: 4px; max-height: 400px; overflow-y: auto;">
+      <h3>Test Results</h3>
+      <p>Test results will appear here...</p>
+    </div>
+    
+    <div style="margin: 20px 0;">
+      <h3>Manual Test Data</h3>
+      <textarea id="custom-webhook-data" rows="8" cols="80" placeholder="Enter custom JSON data to test webhook delivery..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+{
+  "event": "manual_test",
+  "timestamp": "{{ 'now' | date: '%Y-%m-%dT%H:%M:%SZ' }}",
+  "test_data": {
+    "message": "This is a manual webhook test",
+    "user_agent": "{{ request.headers['User-Agent'] }}",
+    "page_url": "{{ request.host }}{{ request.path }}"
+  }
+}
+      </textarea>
+      <br>
+      <button id="test-custom-webhook" style="background: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 4px; margin: 10px 0;">
+        Send Custom Webhook
+      </button>
+    </div>
+    
+    <div style="background: #e8f5e8; padding: 15px; margin: 20px 0; border-radius: 4px;">
+      <h3>Instructions</h3>
+      <ol>
+        <li>Open your browser's Developer Tools (F12)</li>
+        <li>Go to the Console tab</li>
+        <li>Click the test buttons above</li>
+        <li>Watch for "[REDYOOS WEBHOOK PROXY]" log messages</li>
+        <li>Verify webhook delivery at your webhook.site URL</li>
+      </ol>
+    </div>
+    
+    <div style="background: #fff3cd; padding: 15px; margin: 20px 0; border-radius: 4px;">
+      <h3>Expected Behavior</h3>
+      <ul>
+        <li>No CORS errors should appear in the console</li>
+        <li>Webhook data should be delivered using fallback methods</li>
+        <li>The most reliable method (pixel tracking) should be tried first</li>
+        <li>Multiple methods will be attempted if the first one fails</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const resultContainer = document.getElementById('test-results');
+  
+  function log(message, data = '') {
+    const timestamp = new Date().toLocaleTimeString();
+    const logEntry = document.createElement('div');
+    logEntry.innerHTML = `<strong>[${timestamp}]</strong> ${message} ${data ? JSON.stringify(data, null, 2) : ''}`;
+    logEntry.style.marginBottom = '5px';
+    logEntry.style.fontFamily = 'monospace';
+    resultContainer.appendChild(logEntry);
+    resultContainer.scrollTop = resultContainer.scrollHeight;
+    
+    // Also log to console
+    console.log(`[WEBHOOK TEST] ${message}`, data || '');
+  }
+  
+  // Initialize display with configuration
+  setTimeout(function() {
+    if (typeof window.RedyoosWebhookProxy !== 'undefined') {
+      const config = window.RedyoosWebhookProxy.config;
+      document.getElementById('webhook-url').textContent = config.targetWebhookUrl;
+      document.getElementById('primary-method').textContent = config.primaryMethod;
+      document.getElementById('debug-enabled').textContent = config.enableDebug ? 'Yes' : 'No';
+      log('RedyoosWebhookProxy loaded successfully', config);
+    } else {
+      log('ERROR: RedyoosWebhookProxy not found. Ensure redyoos-webhook-proxy section is included.');
+      document.getElementById('webhook-url').textContent = 'Proxy not loaded';
+      document.getElementById('primary-method').textContent = 'N/A';
+      document.getElementById('debug-enabled').textContent = 'N/A';
+    }
+  }, 100);
+  
+  // Test basic webhook
+  document.getElementById('test-basic-webhook').addEventListener('click', function() {
+    log('Testing basic webhook...');
+    
+    if (typeof window.RedyoosWebhookProxy === 'undefined') {
+      log('ERROR: RedyoosWebhookProxy not available');
+      return;
+    }
+    
+    const testData = {
+      event: 'basic_test',
+      timestamp: new Date().toISOString(),
+      message: 'Basic webhook test from Shopify',
+      test_id: 'basic_' + Date.now()
+    };
+    
+    window.RedyoosWebhookProxy.send(testData, {
+      callback: function(success, method) {
+        if (success) {
+          log(`✅ Basic webhook sent successfully via ${method}`);
+        } else {
+          log('❌ Basic webhook failed');
+        }
+      }
+    });
+  });
+  
+  // Test jewelry order webhook
+  document.getElementById('test-jewelry-webhook').addEventListener('click', function() {
+    log('Testing jewelry order webhook...');
+    
+    if (typeof window.RedyoosWebhookProxy === 'undefined') {
+      log('ERROR: RedyoosWebhookProxy not available');
+      return;
+    }
+    
+    const testData = {
+      event: 'jewelry_order_test',
+      correlationId: 'test_' + Date.now(),
+      sessionId: 'sess_test_' + Date.now(),
+      checkout_token: 'test_checkout_token_123',
+      cart_token: 'test_cart_token_456',
+      jewelryItems: [
+        {
+          jewelry_type: 'ring',
+          estimated_value_min: 100,
+          estimated_value_max: 200,
+          metal_type: 'gold',
+          description: 'Test jewelry item for webhook'
+        }
+      ],
+      jewelryItemsCount: 1,
+      timestamp: new Date().toISOString(),
+      test_id: 'jewelry_' + Date.now()
+    };
+    
+    window.RedyoosWebhookProxy.send(testData, {
+      callback: function(success, method) {
+        if (success) {
+          log(`✅ Jewelry webhook sent successfully via ${method}`);
+        } else {
+          log('❌ Jewelry webhook failed');
+        }
+      }
+    });
+  });
+  
+  // Test all methods individually
+  document.getElementById('test-all-methods').addEventListener('click', function() {
+    log('Testing all webhook methods individually...');
+    
+    if (typeof window.RedyoosWebhookProxy === 'undefined') {
+      log('ERROR: RedyoosWebhookProxy not available');
+      return;
+    }
+    
+    const testData = {
+      event: 'method_test',
+      timestamp: new Date().toISOString(),
+      message: 'Testing individual webhook methods'
+    };
+    
+    const methods = window.RedyoosWebhookProxy.methods;
+    const methodNames = Object.keys(methods);
+    let currentMethod = 0;
+    
+    function testNextMethod() {
+      if (currentMethod >= methodNames.length) {
+        log('✅ All methods tested');
+        return;
+      }
+      
+      const methodName = methodNames[currentMethod];
+      const method = methods[methodName];
+      
+      log(`Testing ${methodName}...`);
+      
+      method({...testData, method: methodName, test_id: methodName + '_' + Date.now()}, function(success) {
+        if (success) {
+          log(`✅ ${methodName} succeeded`);
+        } else {
+          log(`❌ ${methodName} failed`);
+        }
+        
+        currentMethod++;
+        setTimeout(testNextMethod, 1000);
+      });
+    }
+    
+    testNextMethod();
+  });
+  
+  // Test custom webhook data
+  document.getElementById('test-custom-webhook').addEventListener('click', function() {
+    log('Testing custom webhook data...');
+    
+    if (typeof window.RedyoosWebhookProxy === 'undefined') {
+      log('ERROR: RedyoosWebhookProxy not available');
+      return;
+    }
+    
+    const customDataText = document.getElementById('custom-webhook-data').value;
+    
+    try {
+      const customData = JSON.parse(customDataText);
+      
+      window.RedyoosWebhookProxy.send(customData, {
+        callback: function(success, method) {
+          if (success) {
+            log(`✅ Custom webhook sent successfully via ${method}`);
+          } else {
+            log('❌ Custom webhook failed');
+          }
+        }
+      });
+      
+    } catch (error) {
+      log('❌ Invalid JSON in custom data', error.message);
+    }
+  });
+  
+  // Clear logs
+  document.getElementById('clear-logs').addEventListener('click', function() {
+    resultContainer.innerHTML = '<h3>Test Results</h3><p>Logs cleared...</p>';
+    console.clear();
+  });
+});
+</script>
