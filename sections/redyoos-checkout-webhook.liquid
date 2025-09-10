@@ -169,19 +169,57 @@ document.addEventListener('DOMContentLoaded', function() {
     // Mark as enhanced
     checkoutButton.setAttribute('data-redyoos-enhanced', 'true');
     
-    // Add event listener to send webhook without blocking checkout
-    checkoutButton.addEventListener('click', function(event) {
-      log('Checkout button clicked - sending jewelryItems webhook');
+    // Add event listener to send webhook before checkout
+    checkoutButton.addEventListener('click', async function(event) {
+      log('Checkout button clicked - processing jewelryItems webhook');
       
-      // Send webhook immediately without blocking the form submission
-      sendJewelryItemsToWebhook().then(success => {
-        log('Webhook sent, checkout will proceed normally');
-      }).catch(error => {
-        log('Webhook error (checkout will still proceed)', error);
-      });
+      // Prevent default temporarily to ensure webhook completes
+      event.preventDefault();
+      event.stopImmediatePropagation();
       
-      // Let the normal checkout process continue immediately
-      // Don't prevent default - let Shopify handle the checkout normally
+      try {
+        // Send webhook with a short timeout to avoid long delays
+        const webhookPromise = sendJewelryItemsToWebhook();
+        const timeoutPromise = new Promise(resolve => setTimeout(resolve, 1000)); // 1 second max
+        
+        // Wait for webhook to complete or timeout (whichever comes first)
+        await Promise.race([webhookPromise, timeoutPromise]);
+        
+        log('Webhook processing complete - proceeding to checkout');
+        
+      } catch (error) {
+        log('Webhook error (proceeding to checkout anyway)', error);
+      }
+      
+      // Now proceed with checkout - use window.location to ensure navigation
+      const cartForm = document.querySelector('#cart');
+      if (cartForm) {
+        // Get the form action URL (should be /cart)
+        const formAction = cartForm.action || '/cart';
+        
+        // Submit form data to cart endpoint, then redirect to checkout
+        const formData = new FormData(cartForm);
+        
+        try {
+          // Submit cart form data
+          await fetch(formAction, {
+            method: 'POST',
+            body: formData
+          });
+          
+          // Then redirect to checkout
+          window.location.href = '/checkout';
+          
+        } catch (error) {
+          log('Cart submission error, trying direct checkout', error);
+          // Fallback: direct checkout navigation
+          window.location.href = '/checkout';
+        }
+      } else {
+        // No form found, direct navigation
+        window.location.href = '/checkout';
+      }
+      
     }, { capture: true }); // Use capture phase to fire before other handlers
     
     log('Checkout button webhook integration completed');
