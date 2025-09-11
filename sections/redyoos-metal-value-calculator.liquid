@@ -56,7 +56,10 @@
         <div class="form-group">
           <label for="weight-input" class="form-label" id="weight-label">Weight (g)</label>
           <div class="weight-help-text">*we only value the metal. If your item has stones, beads etc., we will need to adjust weight by 30% or more. Otherwise you can remove embellishments prior to weighing.</div>
-          <input type="number" id="weight-input" class="form-input" placeholder="100" step="0.01" min="0">
+          <input type="number" id="weight-input" class="form-input" placeholder="100" step="0.01" min="0" pattern="[0-9]+(\.[0-9]+)?" inputmode="decimal">
+          <div class="invalid-feedback" id="weight-feedback" style="display: none;">
+            Please enter a valid positive number.
+          </div>
         </div>
 
         <div class="form-group">
@@ -68,21 +71,44 @@
           </select>
         </div>
 
+        <div class="form-group">
+          <label for="condition-input" class="form-label">Condition</label>
+          <input type="text" id="condition-input" class="form-input" placeholder="Condition assessed from analysis" readonly>
+        </div>
+
+        <div class="form-group">
+          <label for="gemstones-input" class="form-label">Gemstones</label>
+          <input type="text" id="gemstones-input" class="form-input" placeholder="Gemstones identified" readonly>
+        </div>
+
+        <div class="form-group">
+          <label for="description-input" class="form-label">Description</label>
+          <textarea id="description-input" class="form-input" rows="3" placeholder="AI-generated description" readonly></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="markings-input" class="form-label">Markings/Stamps</label>
+          <input type="text" id="markings-input" class="form-input" placeholder="Markings and stamps identified" readonly>
+        </div>
+
         <div class="metal-prices">
           <div class="metal-prices-title">Metal Price ($)</div>
           <div class="price-row">
             <span class="metal-name">Gold:</span>
-            <span class="metal-price" id="gold-price">$3,480.78</span>
+            <span class="metal-price" id="gold-price">$0.00</span>
           </div>
           <div class="price-row">
             <span class="metal-name">Silver:</span>
-            <span class="metal-price" id="silver-price">$40.46</span>
+            <span class="metal-price" id="silver-price">$0.00</span>
           </div>
           <div class="price-row">
             <span class="metal-name">Platinum:</span>
-            <span class="metal-price" id="platinum-price">$1,382.00</span>
+            <span class="metal-price" id="platinum-price">$0.00</span>
           </div>
-          <input type="number" id="custom-price" class="custom-price-input" placeholder="$100" step="0.01">
+          <input type="number" id="custom-price" class="custom-price-input" placeholder="$100" step="0.01" min="0" pattern="[0-9]+(\.[0-9]+)?" inputmode="decimal">
+          <div class="invalid-feedback" id="custom-price-feedback" style="display: none;">
+            Please enter a valid positive price.
+          </div>
           <div class="price-disclaimer">*Precious metals prices constantly change throughout the day. Prices shown here represent the last published prices per ounce and is subject to change.</div>
         </div>
 
@@ -296,6 +322,64 @@
   outline: none;
   border-color: #007bff;
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+/* Readonly field styling */
+.form-input[readonly],
+.form-select[readonly] {
+  background-color: #f8f9fa;
+  color: #495057;
+  cursor: default;
+}
+
+.form-input[readonly]:focus {
+  box-shadow: none;
+  border-color: #ddd;
+}
+
+/* Textarea specific styling */
+textarea.form-input {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* Bootstrap-style validation */
+.form-input.is-invalid,
+.custom-price-input.is-invalid {
+  border-color: #dc3545;
+  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.form-input.is-valid,
+.custom-price-input.is-valid {
+  border-color: #28a745;
+  box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+.invalid-feedback {
+  display: none;
+  width: 100%;
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: #dc3545;
+}
+
+.valid-feedback {
+  display: none;
+  width: 100%;
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: #28a745;
+}
+
+.form-input.is-invalid ~ .invalid-feedback,
+.custom-price-input.is-invalid ~ .invalid-feedback {
+  display: block;
+}
+
+.form-input.is-valid ~ .valid-feedback,
+.custom-price-input.is-valid ~ .valid-feedback {
+  display: block;
 }
 
 .weight-help-text {
@@ -707,6 +791,135 @@ document.addEventListener('DOMContentLoaded', function() {
   // Set up triggers for new sessions
   setupNewSessionTriggers();
   
+  // =================================================================
+  // VALIDATION FUNCTIONS
+  // =================================================================
+  
+  /**
+   * Validates if a value is a valid positive number
+   */
+  function isValidPositiveNumber(value) {
+    if (!value || value.trim() === '') return false;
+    const num = parseFloat(value);
+    return !isNaN(num) && num > 0 && isFinite(num);
+  }
+  
+  /**
+   * Validates weight input field
+   */
+  function validateWeightInput() {
+    const weightInput = document.getElementById('weight-input');
+    const weightFeedback = document.getElementById('weight-feedback');
+    const value = weightInput.value.trim();
+    
+    // Remove existing validation classes
+    weightInput.classList.remove('is-invalid', 'is-valid');
+    
+    if (value === '') {
+      // Empty field is neutral (neither valid nor invalid)
+      return true;
+    }
+    
+    if (isValidPositiveNumber(value)) {
+      weightInput.classList.add('is-valid');
+      return true;
+    } else {
+      weightInput.classList.add('is-invalid');
+      weightFeedback.textContent = 'Please enter a valid positive number for weight.';
+      return false;
+    }
+  }
+  
+  /**
+   * Validates custom price input field
+   */
+  function validateCustomPriceInput() {
+    const customPriceInput = document.getElementById('custom-price');
+    const customPriceFeedback = document.getElementById('custom-price-feedback');
+    const value = customPriceInput.value.trim();
+    
+    // Remove existing validation classes
+    customPriceInput.classList.remove('is-invalid', 'is-valid');
+    
+    if (value === '') {
+      // Empty field is neutral (allowed for custom price)
+      return true;
+    }
+    
+    if (isValidPositiveNumber(value)) {
+      customPriceInput.classList.add('is-valid');
+      return true;
+    } else {
+      customPriceInput.classList.add('is-invalid');
+      customPriceFeedback.textContent = 'Please enter a valid positive price.';
+      return false;
+    }
+  }
+  
+  /**
+   * Prevents non-numeric input in real-time
+   */
+  function restrictToNumericInput(event) {
+    const key = event.key;
+    const input = event.target;
+    const value = input.value;
+    
+    // Allow control keys (backspace, delete, arrow keys, tab, etc.)
+    if ([
+      'Backspace', 'Delete', 'Tab', 'Escape', 'Enter',
+      'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
+      'Home', 'End', 'PageUp', 'PageDown'
+    ].includes(key)) {
+      return;
+    }
+    
+    // Allow Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X, Ctrl+Z
+    if (event.ctrlKey && ['a', 'c', 'v', 'x', 'z'].includes(key.toLowerCase())) {
+      return;
+    }
+    
+    // Allow one decimal point
+    if (key === '.' && value.indexOf('.') === -1) {
+      return;
+    }
+    
+    // Only allow digits
+    if (!/^\d$/.test(key)) {
+      event.preventDefault();
+      return;
+    }
+  }
+  
+  /**
+   * Validates and cleans pasted content
+   */
+  function handlePasteValidation(event) {
+    event.preventDefault();
+    
+    const paste = (event.clipboardData || window.clipboardData).getData('text');
+    const input = event.target;
+    
+    // Clean the pasted content - remove non-numeric characters except decimal point
+    let cleanedValue = paste.replace(/[^0-9.]/g, '');
+    
+    // Allow only one decimal point
+    const decimalCount = (cleanedValue.match(/\./g) || []).length;
+    if (decimalCount > 1) {
+      const parts = cleanedValue.split('.');
+      cleanedValue = parts[0] + '.' + parts.slice(1).join('');
+    }
+    
+    // Set the cleaned value
+    input.value = cleanedValue;
+    
+    // Trigger validation
+    if (input.id === 'weight-input') {
+      validateWeightInput();
+    } else if (input.id === 'custom-price') {
+      validateCustomPriceInput();
+    }
+  }
+  
   // DOM Elements
   const metalSelect = document.getElementById('metal-select');
   const puritySelect = document.getElementById('purity-select');
@@ -721,11 +934,11 @@ document.addEventListener('DOMContentLoaded', function() {
   const estimatedValue = document.getElementById('estimated-value');
   const afterFeesValue = document.getElementById('after-fees-value');
 
-  // Metal prices per troy ounce (31.1035 grams)
+  // Metal prices per troy ounce (31.1035 grams) - Default to 0.00 to indicate API error
   const metalPrices = {
-    gold: 3480.78,
-    silver: 40.46,
-    platinum: 1382.00
+    gold: 0.00,
+    silver: 0.00,
+    platinum: 0.00
   };
 
   // Fee percentage (typical precious metal dealer fee)
@@ -751,6 +964,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Update placeholder to show appropriate example value
     weightInput.placeholder = unitPlaceholders[selectedUnit] || '100';
+    
+    // Recalculate values if there's already a weight entered
+    if (weightInput.value && weightInput.value.trim() !== '') {
+      calculateValue();
+    }
   }
 
   // Update purity options based on selected metal
@@ -822,6 +1040,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Calculate metal value
   function calculateValue() {
+    // Validate inputs before calculation
+    const isWeightValid = validateWeightInput();
+    const isCustomPriceValid = validateCustomPriceInput();
+    
+    // Don't proceed if validation fails
+    if (!isWeightValid || !isCustomPriceValid) {
+      pricePerGram.textContent = '$0.00';
+      estimatedValue.textContent = '$0.00';
+      afterFeesValue.textContent = '$0.00';
+      updateProceedButtonState();
+      return;
+    }
+    
     const metal = metalSelect.value;
     const weight = parseFloat(weightInput.value) || 0;
     const unit = unitSelect.value;
@@ -858,6 +1089,12 @@ document.addEventListener('DOMContentLoaded', function() {
       pricePerOunce = parseFloat(customPrice.value);
     }
 
+    // Check if metal price is 0.00 (indicating API error) and no custom price is set
+    if (pricePerOunce <= 0 && (!customPrice.value || parseFloat(customPrice.value) <= 0)) {
+      console.warn(`Warning: ${metal} price is 0.00 and no valid custom price provided. This indicates an API error for metal price fetching.`);
+      // Still proceed with calculation using 0.00 to show the issue
+    }
+
     // Calculate price per gram
     const pricePerGramValue = (pricePerOunce / 31.1035) * purity;
     
@@ -890,6 +1127,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Store calculated values in SessionStorage for the estimated-value page
+    const conditionInput = document.getElementById('condition-input');
+    const gemstonesInput = document.getElementById('gemstones-input');
+    const descriptionInput = document.getElementById('description-input');
+    const markingsInput = document.getElementById('markings-input');
+
     const calculatedValues = {
       pricePerGram: pricePerGram.textContent,
       estimatedValue: estimatedValue.textContent,
@@ -897,7 +1139,11 @@ document.addEventListener('DOMContentLoaded', function() {
       metalType: metalSelect.value,
       weight: weightInput.value,
       unit: unitSelect.value,
-      purity: puritySelect.value || null
+      purity: puritySelect.value || null,
+      condition: conditionInput ? conditionInput.value : null,
+      gemstones: gemstonesInput ? gemstonesInput.value : null,
+      description: descriptionInput ? descriptionInput.value : null,
+      markings: markingsInput ? markingsInput.value : null
     };
     
     // Store for legacy compatibility
@@ -958,9 +1204,54 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // Event listeners
-  metalSelect.addEventListener('change', updatePurityOptions);
+  metalSelect.addEventListener('change', () => {
+    updatePurityOptions();
+    // Recalculate if form has values
+    if (weightInput.value && weightInput.value.trim() !== '') {
+      calculateValue();
+    }
+  });
+  
+  puritySelect.addEventListener('change', () => {
+    // Recalculate if form has values
+    if (weightInput.value && weightInput.value.trim() !== '') {
+      calculateValue();
+    }
+  });
+  
   unitSelect.addEventListener('change', updateWeightLabel);
   calculateBtn.addEventListener('click', calculateValue);
+  
+  // Combined validation and auto-calculation event listeners
+  weightInput.addEventListener('keydown', restrictToNumericInput);
+  weightInput.addEventListener('input', () => {
+    // Validate first
+    const isValid = validateWeightInput();
+    // Auto-calculate if valid and has value
+    if (isValid && weightInput.value && weightInput.value.trim() !== '') {
+      calculateValue();
+    } else if (!weightInput.value || weightInput.value.trim() === '') {
+      // Clear results if weight is empty
+      pricePerGram.textContent = '$0.00';
+      estimatedValue.textContent = '$0.00';
+      afterFeesValue.textContent = '$0.00';
+      updateProceedButtonState();
+    }
+  });
+  weightInput.addEventListener('blur', validateWeightInput);
+  weightInput.addEventListener('paste', handlePasteValidation);
+  
+  customPrice.addEventListener('keydown', restrictToNumericInput);
+  customPrice.addEventListener('input', () => {
+    // Validate first
+    const isValid = validateCustomPriceInput();
+    // Auto-calculate if there's also a weight value
+    if (isValid && weightInput.value && weightInput.value.trim() !== '') {
+      calculateValue();
+    }
+  });
+  customPrice.addEventListener('blur', validateCustomPriceInput);
+  customPrice.addEventListener('paste', handlePasteValidation);
   
   // Navigation button event listeners
   const returnButton = document.getElementById('return-button');
@@ -1078,6 +1369,17 @@ document.addEventListener('DOMContentLoaded', function() {
         updateWeightLabel();
       }
 
+      // Restore additional fields if they exist
+      const conditionInput = document.getElementById('condition-input');
+      const gemstonesInput = document.getElementById('gemstones-input');
+      const descriptionInput = document.getElementById('description-input');
+      const markingsInput = document.getElementById('markings-input');
+
+      if (conditionInput && values.condition) conditionInput.value = values.condition;
+      if (gemstonesInput && values.gemstones) gemstonesInput.value = values.gemstones;
+      if (descriptionInput && values.description) descriptionInput.value = values.description;
+      if (markingsInput && values.markings) markingsInput.value = values.markings;
+
       // Restore the calculated results
       if (values.pricePerGram) pricePerGram.textContent = values.pricePerGram;
       if (values.estimatedValue) estimatedValue.textContent = values.estimatedValue;
@@ -1111,20 +1413,34 @@ document.addEventListener('DOMContentLoaded', function() {
         const silverPriceEl = document.getElementById('silver-price');
         const platinumPriceEl = document.getElementById('platinum-price');
         
-        if (goldPriceEl && result.metalPrices.gold) {
-          goldPriceEl.textContent = `$${parseFloat(result.metalPrices.gold).toFixed(2)}`;
-        }
-        if (silverPriceEl && result.metalPrices.silver) {
-          silverPriceEl.textContent = `$${parseFloat(result.metalPrices.silver).toFixed(2)}`;
-        }
-        if (platinumPriceEl && result.metalPrices.platinum) {
-          platinumPriceEl.textContent = `$${parseFloat(result.metalPrices.platinum).toFixed(2)}`;
+        // Update gold price (default to 0.00 if missing, invalid, or API error)
+        if (goldPriceEl) {
+          const goldPrice = parseFloat(result.metalPrices.gold);
+          goldPriceEl.textContent = `$${(isNaN(goldPrice) || goldPrice <= 0) ? '0.00' : goldPrice.toFixed(2)}`;
+          metalPrices.gold = (isNaN(goldPrice) || goldPrice <= 0) ? 0.00 : goldPrice;
         }
         
-        // Update the metalPrices object used in calculations
-        metalPrices.gold = parseFloat(result.metalPrices.gold);
-        metalPrices.silver = parseFloat(result.metalPrices.silver);
-        metalPrices.platinum = parseFloat(result.metalPrices.platinum);
+        // Update silver price (default to 0.00 if missing, invalid, or API error)
+        if (silverPriceEl) {
+          const silverPrice = parseFloat(result.metalPrices.silver);
+          silverPriceEl.textContent = `$${(isNaN(silverPrice) || silverPrice <= 0) ? '0.00' : silverPrice.toFixed(2)}`;
+          metalPrices.silver = (isNaN(silverPrice) || silverPrice <= 0) ? 0.00 : silverPrice;
+        }
+        
+        // Update platinum price (default to 0.00 if missing, invalid, or API error)
+        if (platinumPriceEl) {
+          const platinumPrice = parseFloat(result.metalPrices.platinum);
+          platinumPriceEl.textContent = `$${(isNaN(platinumPrice) || platinumPrice <= 0) ? '0.00' : platinumPrice.toFixed(2)}`;
+          metalPrices.platinum = (isNaN(platinumPrice) || platinumPrice <= 0) ? 0.00 : platinumPrice;
+        }
+        
+        // Log warning if any prices are 0.00 (indicating API error)
+        if (metalPrices.gold === 0.00 || metalPrices.silver === 0.00 || metalPrices.platinum === 0.00) {
+          console.warn('Warning: Some metal prices are 0.00, indicating possible API error for metal price fetching');
+        }
+      } else {
+        // No metal prices in result - log warning and keep defaults (0.00)
+        console.warn('Warning: No metal prices found in appraisal result, using default 0.00 values (indicating API error)');
       }
 
       // Auto-fill metalType to metal dropdown
@@ -1155,6 +1471,30 @@ document.addEventListener('DOMContentLoaded', function() {
         if (numericWeight !== null) {
           weightInput.value = numericWeight;
         }
+      }
+
+      // Auto-fill condition
+      const conditionInput = document.getElementById('condition-input');
+      if (conditionInput && result.condition) {
+        conditionInput.value = result.condition;
+      }
+
+      // Auto-fill gemstones
+      const gemstonesInput = document.getElementById('gemstones-input');
+      if (gemstonesInput && result.gemstones) {
+        gemstonesInput.value = result.gemstones;
+      }
+
+      // Auto-fill description
+      const descriptionInput = document.getElementById('description-input');
+      if (descriptionInput && result.description) {
+        descriptionInput.value = result.description;
+      }
+
+      // Auto-fill markings
+      const markingsInput = document.getElementById('markings-input');
+      if (markingsInput && result.markings) {
+        markingsInput.value = result.markings;
       }
 
       // Clear sessionStorage after successful auto-fill to prevent re-filling on refresh
