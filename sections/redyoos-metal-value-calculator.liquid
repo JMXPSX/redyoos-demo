@@ -1426,61 +1426,20 @@ document.addEventListener('DOMContentLoaded', function() {
         const silverPriceEl = document.getElementById('silver-price');
         const platinumPriceEl = document.getElementById('platinum-price');
         
-        // Update gold price - display actual value from API, or 0.00 if API error
-        if (goldPriceEl) {
-          const goldPrice = parseFloat(result.metalPrices.gold);
-          if (!isNaN(goldPrice) && goldPrice > 0) {
-            goldPriceEl.textContent = `$${goldPrice.toFixed(2)}`;
-            metalPrices.gold = goldPrice;
-          } else {
-            goldPriceEl.textContent = '$0.00';
-            metalPrices.gold = 0.00;
-            console.warn('Gold price from API is invalid or 0.00, indicating API error');
-          }
+        if (goldPriceEl && result.metalPrices.gold) {
+          goldPriceEl.textContent = `$${parseFloat(result.metalPrices.gold).toFixed(2)}`;
+        }
+        if (silverPriceEl && result.metalPrices.silver) {
+          silverPriceEl.textContent = `$${parseFloat(result.metalPrices.silver).toFixed(2)}`;
+        }
+        if (platinumPriceEl && result.metalPrices.platinum) {
+          platinumPriceEl.textContent = `$${parseFloat(result.metalPrices.platinum).toFixed(2)}`;
         }
         
-        // Update silver price - display actual value from API, or 0.00 if API error
-        if (silverPriceEl) {
-          const silverPrice = parseFloat(result.metalPrices.silver);
-          if (!isNaN(silverPrice) && silverPrice > 0) {
-            silverPriceEl.textContent = `$${silverPrice.toFixed(2)}`;
-            metalPrices.silver = silverPrice;
-          } else {
-            silverPriceEl.textContent = '$0.00';
-            metalPrices.silver = 0.00;
-            console.warn('Silver price from API is invalid or 0.00, indicating API error');
-          }
-        }
-        
-        // Update platinum price - display actual value from API, or 0.00 if API error
-        if (platinumPriceEl) {
-          const platinumPrice = parseFloat(result.metalPrices.platinum);
-          if (!isNaN(platinumPrice) && platinumPrice > 0) {
-            platinumPriceEl.textContent = `$${platinumPrice.toFixed(2)}`;
-            metalPrices.platinum = platinumPrice;
-          } else {
-            platinumPriceEl.textContent = '$0.00';
-            metalPrices.platinum = 0.00;
-            console.warn('Platinum price from API is invalid or 0.00, indicating API error');
-          }
-        }
-        
-        // Summary log of loaded prices
-        const validPrices = [];
-        const errorPrices = [];
-        if (metalPrices.gold > 0) validPrices.push(`gold: $${metalPrices.gold}`); else errorPrices.push('gold');
-        if (metalPrices.silver > 0) validPrices.push(`silver: $${metalPrices.silver}`); else errorPrices.push('silver');
-        if (metalPrices.platinum > 0) validPrices.push(`platinum: $${metalPrices.platinum}`); else errorPrices.push('platinum');
-        
-        if (validPrices.length > 0) {
-          console.log(`Successfully loaded metal prices: ${validPrices.join(', ')}`);
-        }
-        if (errorPrices.length > 0) {
-          console.warn(`API error for metal prices: ${errorPrices.join(', ')} (showing 0.00)`);
-        }
-      } else {
-        // No metal prices in result - keep defaults (0.00) to indicate missing data
-        console.warn('Warning: No metal prices found in appraisal result, keeping default 0.00 values (indicating missing API data)');
+        // Update the metalPrices object used in calculations
+        metalPrices.gold = parseFloat(result.metalPrices.gold);
+        metalPrices.silver = parseFloat(result.metalPrices.silver);
+        metalPrices.platinum = parseFloat(result.metalPrices.platinum);
       }
 
       // Auto-fill metalType to metal dropdown
