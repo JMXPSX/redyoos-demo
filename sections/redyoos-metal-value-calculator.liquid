@@ -18,7 +18,7 @@
     <div id="uploaded-images-section" class="uploaded-images-section" style="display: none;">
       <div class="uploaded-images-header">
         <h3 class="uploaded-images-title">Your Uploaded Images</h3>
-        <button type="button" id="hide-images-btn" class="hide-images-btn">Hide Images</button>
+        {% comment %} <button type="button" id="hide-images-btn" class="hide-images-btn">Hide Images</button> {% endcomment %}
       </div>
       <div class="uploaded-images-container" id="uploaded-images-container">
         <!-- Images will be dynamically inserted here -->
@@ -1101,6 +1101,31 @@ document.addEventListener('DOMContentLoaded', function() {
 
       const result = JSON.parse(appraisalData);
       console.log('Auto-filling form with appraisal data:', result);
+
+      // Update metal prices if available in appraisal result
+      if (result.metalPrices) {
+        console.log('Updating metal prices from appraisal result:', result.metalPrices);
+        
+        // Update the displayed prices
+        const goldPriceEl = document.getElementById('gold-price');
+        const silverPriceEl = document.getElementById('silver-price');
+        const platinumPriceEl = document.getElementById('platinum-price');
+        
+        if (goldPriceEl && result.metalPrices.gold) {
+          goldPriceEl.textContent = `$${parseFloat(result.metalPrices.gold).toFixed(2)}`;
+        }
+        if (silverPriceEl && result.metalPrices.silver) {
+          silverPriceEl.textContent = `$${parseFloat(result.metalPrices.silver).toFixed(2)}`;
+        }
+        if (platinumPriceEl && result.metalPrices.platinum) {
+          platinumPriceEl.textContent = `$${parseFloat(result.metalPrices.platinum).toFixed(2)}`;
+        }
+        
+        // Update the metalPrices object used in calculations
+        metalPrices.gold = parseFloat(result.metalPrices.gold);
+        metalPrices.silver = parseFloat(result.metalPrices.silver);
+        metalPrices.platinum = parseFloat(result.metalPrices.platinum);
+      }
 
       // Auto-fill metalType to metal dropdown
       if (result.metalType) {

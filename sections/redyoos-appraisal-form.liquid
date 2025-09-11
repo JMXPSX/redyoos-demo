@@ -1209,6 +1209,13 @@ document.addEventListener('DOMContentLoaded', () => {
       result.purity = goldPurities[Math.floor(Math.random() * goldPurities.length)];
     }
     
+    // Add metal prices to the result
+    result.metalPrices = {
+      gold: 3480.78,
+      silver: 40.46,
+      platinum: 1382.00
+    };
+    
     return {
       success: true,
       message: "Appraisal completed successfully",
@@ -1399,7 +1406,18 @@ document.addEventListener('DOMContentLoaded', () => {
       
       // Store the appraisal result in sessionStorage for the metal calculator page
       if (result.data && result.data.result) {
-        sessionStorage.setItem('appraisalResult', JSON.stringify(result.data.result));
+        const appraisalResult = result.data.result;
+        
+        // Add metal prices to the appraisal result if not already included
+        if (!appraisalResult.metalPrices) {
+          appraisalResult.metalPrices = {
+            gold: 3480.78,
+            silver: 40.46,
+            platinum: 1382.00
+          };
+        }
+        
+        sessionStorage.setItem('appraisalResult', JSON.stringify(appraisalResult));
       }
       
       // Store uploaded images in sessionStorage for the value calculator page
