@@ -73,22 +73,22 @@
 
         <div class="form-group">
           <label for="condition-input" class="form-label">Condition</label>
-          <input type="text" id="condition-input" class="form-input" placeholder="Condition assessed from analysis" readonly>
+          <input type="text" id="condition-input" class="form-input" placeholder="Condition assessed from analysis">
         </div>
 
         <div class="form-group">
           <label for="gemstones-input" class="form-label">Gemstones</label>
-          <input type="text" id="gemstones-input" class="form-input" placeholder="Gemstones identified" readonly>
+          <input type="text" id="gemstones-input" class="form-input" placeholder="Gemstones identified">
         </div>
 
         <div class="form-group">
           <label for="description-input" class="form-label">Description</label>
-          <textarea id="description-input" class="form-input" rows="3" placeholder="AI-generated description" readonly></textarea>
+          <textarea id="description-input" class="form-input" rows="3" placeholder="AI-generated description"></textarea>
         </div>
 
         <div class="form-group">
           <label for="markings-input" class="form-label">Markings/Stamps</label>
-          <input type="text" id="markings-input" class="form-input" placeholder="Markings and stamps identified" readonly>
+          <input type="text" id="markings-input" class="form-input" placeholder="Markings and stamps identified">
         </div>
 
         <div class="metal-prices">
@@ -122,7 +122,7 @@
         <div class="results-top-row">
           <div class="result-card price-per-gram">
             <div class="result-value" id="price-per-gram">$0.00</div>
-            <div class="result-label">Price Per Gram</div>
+            <div class="result-label" id="price-per-unit-label">Price Per Gram</div>
           </div>
           <div class="result-card estimated-value">
             <div class="result-value" id="estimated-value">$0.00</div>
@@ -944,7 +944,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Fee percentage (typical precious metal dealer fee)
   const feePercentage = 0.15; // 15% fee
 
-  // Update weight label based on selected unit
+  // Update weight label and price per unit label based on selected unit
   function updateWeightLabel() {
     const selectedUnit = unitSelect.value;
     const unitLabels = {
@@ -959,8 +959,20 @@ document.addEventListener('DOMContentLoaded', function() {
       'pennyweights': '64.3'
     };
     
-    // Update label text
+    const pricePerUnitLabels = {
+      'grams': 'Price Per Gram',
+      'ounces': 'Price Per Ounce',
+      'pennyweights': 'Price Per DWT'
+    };
+    
+    // Update weight label text
     weightLabel.textContent = unitLabels[selectedUnit] || 'Weight (g)';
+    
+    // Update price per unit label text
+    const pricePerUnitLabel = document.getElementById('price-per-unit-label');
+    if (pricePerUnitLabel) {
+      pricePerUnitLabel.textContent = pricePerUnitLabels[selectedUnit] || 'Price Per Gram';
+    }
     
     // Update placeholder to show appropriate example value
     weightInput.placeholder = unitPlaceholders[selectedUnit] || '100';
@@ -1095,17 +1107,25 @@ document.addEventListener('DOMContentLoaded', function() {
       // Still proceed with calculation using 0.00 to show the issue
     }
 
-    // Calculate price per gram
+    // Calculate price per gram (always calculate this for internal use)
     const pricePerGramValue = (pricePerOunce / 31.1035) * purity;
     
-    // Calculate estimated value
+    // Calculate price per selected unit for display
+    let pricePerUnitValue = pricePerGramValue; // Default to per gram
+    if (unit === 'ounces') {
+      pricePerUnitValue = pricePerGramValue * 31.1035; // Price per troy ounce
+    } else if (unit === 'pennyweights') {
+      pricePerUnitValue = pricePerGramValue * 1.55517; // Price per pennyweight
+    }
+    
+    // Calculate estimated value (always use grams for accuracy)
     const estimatedValueAmount = pricePerGramValue * weightInGrams;
     
     // Calculate value after fees
     const afterFeesAmount = estimatedValueAmount * (1 - feePercentage);
 
     // Update display
-    pricePerGram.textContent = '$' + pricePerGramValue.toFixed(2);
+    pricePerGram.textContent = '$' + pricePerUnitValue.toFixed(2); // Display price per selected unit
     estimatedValue.textContent = '$' + estimatedValueAmount.toFixed(2);
     afterFeesValue.textContent = '$' + afterFeesAmount.toFixed(2);
     
@@ -1242,14 +1262,7 @@ document.addEventListener('DOMContentLoaded', function() {
   weightInput.addEventListener('paste', handlePasteValidation);
   
   customPrice.addEventListener('keydown', restrictToNumericInput);
-  customPrice.addEventListener('input', () => {
-    // Validate first
-    const isValid = validateCustomPriceInput();
-    // Auto-calculate if there's also a weight value
-    if (isValid && weightInput.value && weightInput.value.trim() !== '') {
-      calculateValue();
-    }
-  });
+  customPrice.addEventListener('input', validateCustomPriceInput); // Only validate, don't auto-calculate
   customPrice.addEventListener('blur', validateCustomPriceInput);
   customPrice.addEventListener('paste', handlePasteValidation);
   
@@ -1413,34 +1426,61 @@ document.addEventListener('DOMContentLoaded', function() {
         const silverPriceEl = document.getElementById('silver-price');
         const platinumPriceEl = document.getElementById('platinum-price');
         
-        // Update gold price (default to 0.00 if missing, invalid, or API error)
+        // Update gold price - display actual value from API, or 0.00 if API error
         if (goldPriceEl) {
           const goldPrice = parseFloat(result.metalPrices.gold);
-          goldPriceEl.textContent = `$${(isNaN(goldPrice) || goldPrice <= 0) ? '0.00' : goldPrice.toFixed(2)}`;
-          metalPrices.gold = (isNaN(goldPrice) || goldPrice <= 0) ? 0.00 : goldPrice;
+          if (!isNaN(goldPrice) && goldPrice > 0) {
+            goldPriceEl.textContent = `$${goldPrice.toFixed(2)}`;
+            metalPrices.gold = goldPrice;
+          } else {
+            goldPriceEl.textContent = '$0.00';
+            metalPrices.gold = 0.00;
+            console.warn('Gold price from API is invalid or 0.00, indicating API error');
+          }
         }
         
-        // Update silver price (default to 0.00 if missing, invalid, or API error)
+        // Update silver price - display actual value from API, or 0.00 if API error
         if (silverPriceEl) {
           const silverPrice = parseFloat(result.metalPrices.silver);
-          silverPriceEl.textContent = `$${(isNaN(silverPrice) || silverPrice <= 0) ? '0.00' : silverPrice.toFixed(2)}`;
-          metalPrices.silver = (isNaN(silverPrice) || silverPrice <= 0) ? 0.00 : silverPrice;
+          if (!isNaN(silverPrice) && silverPrice > 0) {
+            silverPriceEl.textContent = `$${silverPrice.toFixed(2)}`;
+            metalPrices.silver = silverPrice;
+          } else {
+            silverPriceEl.textContent = '$0.00';
+            metalPrices.silver = 0.00;
+            console.warn('Silver price from API is invalid or 0.00, indicating API error');
+          }
         }
         
-        // Update platinum price (default to 0.00 if missing, invalid, or API error)
+        // Update platinum price - display actual value from API, or 0.00 if API error
         if (platinumPriceEl) {
           const platinumPrice = parseFloat(result.metalPrices.platinum);
-          platinumPriceEl.textContent = `$${(isNaN(platinumPrice) || platinumPrice <= 0) ? '0.00' : platinumPrice.toFixed(2)}`;
-          metalPrices.platinum = (isNaN(platinumPrice) || platinumPrice <= 0) ? 0.00 : platinumPrice;
+          if (!isNaN(platinumPrice) && platinumPrice > 0) {
+            platinumPriceEl.textContent = `$${platinumPrice.toFixed(2)}`;
+            metalPrices.platinum = platinumPrice;
+          } else {
+            platinumPriceEl.textContent = '$0.00';
+            metalPrices.platinum = 0.00;
+            console.warn('Platinum price from API is invalid or 0.00, indicating API error');
+          }
         }
         
-        // Log warning if any prices are 0.00 (indicating API error)
-        if (metalPrices.gold === 0.00 || metalPrices.silver === 0.00 || metalPrices.platinum === 0.00) {
-          console.warn('Warning: Some metal prices are 0.00, indicating possible API error for metal price fetching');
+        // Summary log of loaded prices
+        const validPrices = [];
+        const errorPrices = [];
+        if (metalPrices.gold > 0) validPrices.push(`gold: $${metalPrices.gold}`); else errorPrices.push('gold');
+        if (metalPrices.silver > 0) validPrices.push(`silver: $${metalPrices.silver}`); else errorPrices.push('silver');
+        if (metalPrices.platinum > 0) validPrices.push(`platinum: $${metalPrices.platinum}`); else errorPrices.push('platinum');
+        
+        if (validPrices.length > 0) {
+          console.log(`Successfully loaded metal prices: ${validPrices.join(', ')}`);
+        }
+        if (errorPrices.length > 0) {
+          console.warn(`API error for metal prices: ${errorPrices.join(', ')} (showing 0.00)`);
         }
       } else {
-        // No metal prices in result - log warning and keep defaults (0.00)
-        console.warn('Warning: No metal prices found in appraisal result, using default 0.00 values (indicating API error)');
+        // No metal prices in result - keep defaults (0.00) to indicate missing data
+        console.warn('Warning: No metal prices found in appraisal result, keeping default 0.00 values (indicating missing API data)');
       }
 
       // Auto-fill metalType to metal dropdown

@@ -1209,11 +1209,11 @@ document.addEventListener('DOMContentLoaded', () => {
       result.purity = goldPurities[Math.floor(Math.random() * goldPurities.length)];
     }
     
-    // Add metal prices to the result - using 0.00 to simulate API error scenario
+    // Add metal prices to the result - using current market prices for successful response
     result.metalPrices = {
-      gold: 0.00,
-      silver: 0.00,
-      platinum: 0.00
+      gold: 3480.78,
+      silver: 40.46,
+      platinum: 1382.00
     };
     
     return {
@@ -1409,8 +1409,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const appraisalResult = result.data.result;
         
         // Add metal prices to the appraisal result if not already included
-        // Default to 0.00 to indicate API error if no valid prices are provided
         if (!appraisalResult.metalPrices) {
+          // If AWS API doesn't provide metal prices, use fallback values or 0.00 to indicate error
           appraisalResult.metalPrices = {
             gold: 0.00,
             silver: 0.00,
@@ -1418,20 +1418,40 @@ document.addEventListener('DOMContentLoaded', () => {
           };
           console.warn('Warning: No metal prices returned from AWS API, using 0.00 values to indicate API error');
         } else {
-          // Validate existing metal prices and set to 0.00 if invalid
+          // Validate existing metal prices from the API response
           const validatedPrices = {};
-          validatedPrices.gold = (appraisalResult.metalPrices.gold && parseFloat(appraisalResult.metalPrices.gold) > 0) 
+          
+          // Only set to 0.00 if the API explicitly returns invalid data (null, undefined, negative, or non-numeric)
+          validatedPrices.gold = (appraisalResult.metalPrices.gold !== null && 
+                                  appraisalResult.metalPrices.gold !== undefined && 
+                                  !isNaN(parseFloat(appraisalResult.metalPrices.gold)) && 
+                                  parseFloat(appraisalResult.metalPrices.gold) > 0) 
             ? parseFloat(appraisalResult.metalPrices.gold) : 0.00;
-          validatedPrices.silver = (appraisalResult.metalPrices.silver && parseFloat(appraisalResult.metalPrices.silver) > 0) 
+            
+          validatedPrices.silver = (appraisalResult.metalPrices.silver !== null && 
+                                    appraisalResult.metalPrices.silver !== undefined && 
+                                    !isNaN(parseFloat(appraisalResult.metalPrices.silver)) && 
+                                    parseFloat(appraisalResult.metalPrices.silver) > 0) 
             ? parseFloat(appraisalResult.metalPrices.silver) : 0.00;
-          validatedPrices.platinum = (appraisalResult.metalPrices.platinum && parseFloat(appraisalResult.metalPrices.platinum) > 0) 
+            
+          validatedPrices.platinum = (appraisalResult.metalPrices.platinum !== null && 
+                                      appraisalResult.metalPrices.platinum !== undefined && 
+                                      !isNaN(parseFloat(appraisalResult.metalPrices.platinum)) && 
+                                      parseFloat(appraisalResult.metalPrices.platinum) > 0) 
             ? parseFloat(appraisalResult.metalPrices.platinum) : 0.00;
           
           appraisalResult.metalPrices = validatedPrices;
           
-          // Log warning if any prices are 0.00
-          if (validatedPrices.gold === 0.00 || validatedPrices.silver === 0.00 || validatedPrices.platinum === 0.00) {
-            console.warn('Warning: Some metal prices from AWS API are invalid or 0.00, indicating possible API error');
+          // Only log warning if any prices are actually 0.00 (indicating real API error)
+          const errorPrices = [];
+          if (validatedPrices.gold === 0.00) errorPrices.push('gold');
+          if (validatedPrices.silver === 0.00) errorPrices.push('silver');
+          if (validatedPrices.platinum === 0.00) errorPrices.push('platinum');
+          
+          if (errorPrices.length > 0) {
+            console.warn(`Warning: Invalid metal prices from AWS API for: ${errorPrices.join(', ')}. Set to 0.00 to indicate API error.`);
+          } else {
+            console.log('Successfully loaded metal prices from AWS API:', validatedPrices);
           }
         }
         
