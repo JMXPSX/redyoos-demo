@@ -76,7 +76,7 @@
 .service-image {
   width: 100%;
   height: 180px;
-  background-color: #e0e0e0;
+  object-fit: cover;
   margin-bottom: 20px;
   border-radius: 4px;
 }
@@ -207,7 +207,7 @@
 
       <!-- Recycle Mail Kit -->
       <div class="service-card">
-        <div class="service-image"></div>
+        <img src="{{ 'recycle_mail_kit.png' | asset_url }}" alt="Recycle Mail Kit" class="service-image">
         <div class="service-title">Recycle Mail Kit</div>
         <div class="service-description">
           {{ section.settings.recycle_description | default: 'Turn your old, broken, or unwanted jewelry into something meaningful while helping the environment. Our secure mail kit makes it easy to responsibly recycle precious metals from damaged pieces, single earrings, or jewelry you no longer wear.' }}
@@ -219,7 +219,7 @@
 
       <!-- Buy Back Mail Kit -->
       <div class="service-card">
-        <div class="service-image"></div>
+        <img src="{{ 'buy_back_mail_kit.png' | asset_url }}" alt="Buy Back Mail Kit" class="service-image">
         <div class="service-title">Buy Back Mail Kit</div>
         <div class="service-description">
           {{ section.settings.buyback_description | default: 'Get cash for your jewelry with our professional appraisal service. Send us your gold, silver, platinum, or gemstone pieces using our secure, insured mail kit. Our certified appraisers evaluate each item individually and provide competitive offers based on current market prices. Fast, transparent, and trustworthy.' }}
