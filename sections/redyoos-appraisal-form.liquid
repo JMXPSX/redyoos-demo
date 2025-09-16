@@ -275,7 +275,7 @@
 .camera-icon {
   width: 24px;
   height: 24px;
-  color: #d10077;
+  color: rgb(var(--color-foreground));
   margin-right: 8px;
 }
 
@@ -329,7 +329,7 @@
 
 .upload-area.has-files {
   border-color: #10b981;
-  background-color: #f0fdf4;
+  background-color: #f7f7f7;
 }
 
 .upload-icon {
@@ -380,7 +380,7 @@
 .clear-all-btn {
   background: none;
   border: none;
-  color: #d10077;
+  color: rgb(var(--color-foreground));
   cursor: pointer;
   font-size: 0.875rem;
   font-weight: 500;
@@ -388,7 +388,7 @@
 }
 
 .clear-all-btn:hover {
-  color: #a3005a;
+  color: rgb(var(--color-foreground), 0.7);
   text-decoration: underline;
 }
 
@@ -436,8 +436,8 @@
   right: 5px;
   width: 24px;
   height: 24px;
-  background-color: #d10077;
-  color: #fff;
+  background-color: rgb(var(--color-foreground));
+  color: rgb(var(--color-background));
   border: none;
   border-radius: 50%;
   cursor: pointer;
@@ -449,12 +449,12 @@
 }
 
 .remove-image-btn:hover {
-  background-color: #a3005a;
+  background-color: rgba(var(--color-foreground), 0.8);
 }
 
-/* Tips section - matching the light blue background from the design */
+/* Tips section - matching the Jewelry Recycling banner styling */
 .tips-section {
-  background-color: #e1f3ff;
+  background-color: #f7f7f7;
   border-radius: 8px;
   padding: 20px;
   margin-bottom: 25px;
@@ -505,6 +505,25 @@
   color: #9ca3af;
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+/* Ensure text is readable during analysis transitions */
+.analyze-btn.analyzing {
+  background-color: #6b7280 !important;
+  color: #ffffff !important;
+  border-color: #6b7280 !important;
+}
+
+.analyze-btn.complete {
+  background-color: #10b981 !important;
+  color: #ffffff !important;
+  border-color: #10b981 !important;
+}
+
+.analyze-btn.error {
+  background-color: #ef4444 !important;
+  color: #ffffff !important;
+  border-color: #ef4444 !important;
 }
 
 /* Mock Mode Indicator */
@@ -1411,7 +1430,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (result.success) {
       // Success - show success message and redirect
       analyzeBtn.textContent = 'Analysis Complete! Redirecting...';
-      analyzeBtn.style.backgroundColor = '#10b981';
+      analyzeBtn.classList.remove('analyzing', 'error');
+      analyzeBtn.classList.add('complete');
       
       // Store the appraisal result in sessionStorage for the metal calculator page
       if (result.data && result.data.result) {
@@ -1471,7 +1491,8 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       // Error - show error message
       analyzeBtn.textContent = 'Analysis Failed - Try Again';
-      analyzeBtn.style.backgroundColor = '#ef4444';
+      analyzeBtn.classList.remove('analyzing', 'complete');
+      analyzeBtn.classList.add('error');
       
       // Show user-friendly error message
       const errorMessages = {
@@ -1489,7 +1510,7 @@ document.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => {
         // Reset button after 5 seconds
         analyzeBtn.textContent = 'Analyze';
-        analyzeBtn.style.backgroundColor = '#10b981';
+        analyzeBtn.classList.remove('analyzing', 'complete', 'error');
         analyzeBtn.disabled = false;
       }, 5000);
     }
@@ -1501,7 +1522,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Show loading state with progress indication
       analyzeBtn.textContent = 'Analyzing...';
       analyzeBtn.disabled = true;
-      analyzeBtn.style.backgroundColor = '#6b7280';
+      analyzeBtn.classList.add('analyzing');
       
       // Add progress animation
       let progressDots = 0;
