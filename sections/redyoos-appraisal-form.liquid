@@ -21,15 +21,16 @@
   <div class="appraisal-container">
     <div class="appraisal-header">
       <h2 class="appraisal-title">
-        <svg xmlns="http://www.w3.org/2000/svg" class="camera-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+        <svg xmlns="http://www.w3.org/2000/svg" class="camera-icon icon icon-camera" aria-hidden="true" focusable="false" fill="none" viewBox="0 0 24 24">
+          <path fill="currentColor" fill-rule="evenodd" d="M9.5 4a1.5 1.5 0 00-1.342.83L7.5 6H5a3 3 0 00-3 3v8a3 3 0 003 3h14a3 3 0 003-3V9a3 3 0 00-3-3h-2.5l-.658-1.17A1.5 1.5 0 0014.5 4h-5zm-2.5 5a1 1 0 011-1h8a1 1 0 011 1v8a1 1 0 01-1 1H8a1 1 0 01-1-1V9zm5 6a3 3 0 100-6 3 3 0 000 6zm0-1a2 2 0 100-4 2 2 0 000 4z"/>
         </svg>
         Upload Images
       </h2>
       <a href="#" class="upload-guide-link">
-        <svg xmlns="http://www.w3.org/2000/svg" class="question-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <svg class="question-icon icon icon-info" aria-hidden="true" focusable="false" viewBox="0 0 15 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M14.5 7C14.5 10.866 11.366 14 7.5 14C3.63401 14 0.5 10.866 0.5 7C0.5 3.13401 3.63401 0 7.5 0C11.366 0 14.5 3.13401 14.5 7ZM7.5 13.1737C10.9096 13.1737 13.6737 10.4096 13.6737 7C13.6737 3.59035 10.9096 0.826284 7.5 0.826284C4.09035 0.826284 1.32628 3.59035 1.32628 7C1.32628 10.4096 4.09035 13.1737 7.5 13.1737Z" fill="currentColor" fill-opacity="0.75"/>
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M8.19189 3.55353C8.19189 3.16326 7.91572 2.82899 7.50163 2.82899C7.09256 2.82899 6.80626 3.15786 6.80626 3.55353C6.80626 3.94642 7.09511 4.27259 7.50163 4.27259C7.9132 4.27259 8.19189 3.94104 8.19189 3.55353Z" fill="currentColor" fill-opacity="0.75"/>
+          <path d="M6.97141 5.72371C6.97141 5.54117 7.11938 5.3932 7.30192 5.3932H7.69854C7.88107 5.3932 8.02905 5.54117 8.02905 5.72371V10.8467C8.02905 11.0292 7.88107 11.1772 7.69854 11.1772H7.30192C7.11938 11.1772 6.97141 11.0292 6.97141 10.8467V5.72371Z" fill="currentColor" fill-opacity="0.75"/>
         </svg>
         See image upload guide
       </a>
@@ -63,18 +64,18 @@
       </div>
 
       <div class="tips-section">
-        <h3 class="instructions-title">Photo Tips for Better Appraisal:</h3>
+        <h3 class="instructions-title">Photo Tips for Better AI Appraisal:</h3>
         <ul class="upload-instructions">
           <li>Upload multiple images of one(1) jewelry piece from multiple angles</li>
           <li>Take photos in good lighting</li>
           <li>Include close-ups of markings and stamps</li>
-          <li>Show different angles of the item</li>
+          <li>Show different angles of the jewelry</li>
           <li>Include photos of any gemstones</li>
           <li>Use a plain background for contrast</li>
         </ul>
       </div>
 
-      <button type="button" class="analyze-btn" disabled>Analyze</button>
+      <button type="button" class="button button--full-width button--secondary analyze-btn" disabled>Analyze</button>
       
       <!-- Development Mode Indicator (only visible when USE_MOCK_API is true) -->
       <div id="mock-mode-indicator" class="mock-mode-indicator" style="display: none;">
@@ -280,22 +281,27 @@
 
 .upload-guide-link {
   font-size: 0.875rem;
-  color: #d10077;
+  color: rgb(var(--color-foreground));
   text-decoration: none;
   display: flex;
   align-items: center;
   transition: all 0.2s ease-in-out;
+  padding: 8px 12px;
+  border: 1px solid rgb(var(--color-foreground));
+  border-radius: 4px;
+  background-color: transparent;
 }
 
 .upload-guide-link:hover {
-  color: #a3005a;
-  text-decoration: underline;
+  background-color: rgb(var(--color-foreground));
+  color: rgb(var(--color-background));
+  text-decoration: none;
 }
 
 .question-icon {
   width: 16px;
   height: 16px;
-  color: #d10077;
+  color: currentColor;
   margin-right: 4px;
 }
 
@@ -318,7 +324,7 @@
 
 .upload-area:hover {
   background-color: #f3f4f6;
-  border-color: #d10077;
+  border-color: rgb(var(--color-foreground));
 }
 
 .upload-area.has-files {
@@ -489,29 +495,16 @@
   margin-bottom: 0;
 }
 
-/* Analyze button styles */
+/* Analyze button - inherits from Shopify button classes */
 .analyze-btn {
-  width: 100%;
-  background-color: #10b981;
-  color: #fff;
-  padding: 14px 24px;
-  border: none;
-  cursor: pointer;
-  border-radius: 6px;
-  font-size: 1rem;
-  font-weight: 600;
-  transition: background-color 0.3s ease;
-  letter-spacing: 0.025em;
-}
-
-.analyze-btn:hover:not(:disabled) {
-  background-color: #059669;
+  margin-top: 20px;
 }
 
 .analyze-btn:disabled {
   background-color: #d1d5db;
   color: #9ca3af;
   cursor: not-allowed;
+  opacity: 0.6;
 }
 
 /* Mock Mode Indicator */
