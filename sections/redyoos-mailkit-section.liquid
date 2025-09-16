@@ -99,50 +99,17 @@
   flex-grow: 1; /* Pushes button down */
 }
 
-.service-button {
-  color: white;
-  padding: 12px 24px;
-  text-decoration: none;
-  border: none;
-  font-size: 14px;
-  cursor: pointer;
-  border-radius: 4px;
-  transition: all 0.3s ease;
-  font-weight: 500;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+/* Service card button styling - inherits from Shopify button classes */
+.service-card .button {
+  margin-top: auto;
 }
 
-/* Different button colors */
-.service-button.recycle-button {
-  background-color: #007bff;
-}
-.service-button.recycle-button:hover {
-  background-color: #0056b3;
-}
-
-.service-button.buyback-button {
-  background-color: #28a745;
-}
-.service-button.buyback-button:hover {
-  background-color: #218838;
-}
-
-.service-button:active {
-  transform: translateY(0);
-}
-
-/* Loading state */
-.service-button.loading {
+/* Loading state for service buttons */
+.service-card .button.loading {
   pointer-events: none;
   opacity: 0.7;
 }
 
-/* .service-button.loading::after {
-  content: "⏳";
-  animation: spin 1s linear infinite;
-} */
 
 @keyframes spin {
   from { transform: rotate(0deg); }
@@ -212,7 +179,7 @@
         <div class="service-description">
           {{ section.settings.recycle_description | default: 'Turn your old, broken, or unwanted jewelry into something meaningful while helping the environment. Our secure mail kit makes it easy to responsibly recycle precious metals from damaged pieces, single earrings, or jewelry you no longer wear.' }}
         </div>
-        <button onclick="redirectToRecycleMailKitCheckout()" class="service-button recycle-button">
+        <button onclick="redirectToRecycleMailKitCheckout()" class="button button--full-width button--primary">
           {{ section.settings.recycle_button_text | default: 'Get a Recycle Mail Kit' }}
         </button>
       </div>
@@ -224,7 +191,7 @@
         <div class="service-description">
           {{ section.settings.buyback_description | default: 'Get cash for your jewelry with our professional appraisal service. Send us your gold, silver, platinum, or gemstone pieces using our secure, insured mail kit. Our certified appraisers evaluate each item individually and provide competitive offers based on current market prices. Fast, transparent, and trustworthy.' }}
         </div>
-        <a href="{{ section.settings.buyback_link | default: '/pages/appraisal-form' }}" class="service-button buyback-button" id="buyback-mailkit-button">
+        <a href="{{ section.settings.buyback_link | default: '/pages/appraisal-form' }}" class="button button--full-width button--secondary" id="buyback-mailkit-button">
           {{ section.settings.buyback_button_text | default: 'Get a Buy Back Mail Kit' }}
         </a>
       </div>
@@ -258,7 +225,7 @@ function startFreshJewelrySession() {
 
 // Cart API Function - Clear cart and add Recycle Mail Kit
 async function redirectToRecycleMailKitCheckout() {
-  const recycleButton = document.querySelector('.recycle-button');
+  const recycleButton = document.querySelector('.service-card .button');
   
   // Add loading state
   if (recycleButton) {
@@ -337,7 +304,7 @@ function clearCartAndAddViaForm(variantId, quantity) {
 // Enhanced page transition
 function initializePageTransition() {
   const servicesSection = document.getElementById('servicesSection');
-  const buybackButton = document.querySelector('.buyback-button');
+  const buybackButton = document.querySelector('#buyback-mailkit-button');
   const backButton = document.getElementById('backToServices');
   
   function findAppraisalSection() {
