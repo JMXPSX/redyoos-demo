@@ -918,33 +918,6 @@ document.addEventListener('DOMContentLoaded', function() {
   // Function to redirect back to value-calculator page with preserved data for specific jewelry item
   function redirectToValueCalculator(itemIndex) {
     try {
-      // If clicking on the first jewelry item (index 0), redirect to appraisal form
-      if (itemIndex === 0) {
-        const storedJewelryItems = sessionStorage.getItem('jewelryItems');
-        if (storedJewelryItems) {
-          const jewelryItems = JSON.parse(storedJewelryItems);
-          if (jewelryItems[0]) {
-            const selectedItem = jewelryItems[0];
-
-            // Set the current item's data as active session data for the appraisal form
-            if (selectedItem.images) {
-              sessionStorage.setItem('uploadedImages', JSON.stringify(selectedItem.images));
-            }
-            if (selectedItem.calculatedValues) {
-              sessionStorage.setItem('calculatedValues', JSON.stringify(selectedItem.calculatedValues));
-            }
-
-            // Store which item we're editing
-            sessionStorage.setItem('currentJewelryItemIndex', itemIndex.toString());
-
-            console.log(`Redirecting to appraisal-form for jewelry item ${itemIndex}`);
-          }
-        }
-
-        window.location.href = '/pages/appraisal-form';
-        return;
-      }
-
       const storedJewelryItems = sessionStorage.getItem('jewelryItems');
       if (!storedJewelryItems) {
         console.log('No jewelry items found, redirecting with current session data');
