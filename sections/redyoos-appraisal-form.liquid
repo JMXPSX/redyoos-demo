@@ -120,7 +120,6 @@
   <div class="modal-container" role="dialog" aria-labelledby="modal-title" aria-modal="true">
     <div class="modal-header">
       <h2 id="modal-title" class="modal-title">Image Upload Guide</h2>
-      <button type="button" class="modal-close-btn" aria-label="Close modal">&times;</button>
     </div>
     
     <div class="modal-content">
@@ -231,7 +230,7 @@
     </div>
     
     <div class="modal-footer">
-      <button type="button" class="got-it-btn">Got it!</button>
+      <button type="button" class="button button--full-width button--primary got-it-btn">Close</button>
     </div>
   </div>
 </div>
@@ -794,7 +793,12 @@
   justify-content: center;
 }
 
-.got-it-btn {
+.got-it-btn.button--primary {
+  /* Primary button styling handled by Shopify classes */
+}
+
+.got-it-btn:not(.button) {
+  /* Fallback for buttons without Shopify classes */
   background-color: #d10077;
   color: white;
   border: none;
@@ -807,7 +811,7 @@
   min-width: 120px;
 }
 
-.got-it-btn:hover {
+.got-it-btn:not(.button):hover {
   background-color: #a3005a;
 }
 
