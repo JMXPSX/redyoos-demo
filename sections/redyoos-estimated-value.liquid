@@ -40,7 +40,7 @@
     <div class="total-value-box">
       <p>Estimated Total Value</p>
       <h2 id="total-value-amount">$0.00</h2>
-      <p>Based on current appraisal.</p>
+      <p>Based on current appraisal</p>
     </div>
 
     <!-- Buttons -->
@@ -107,7 +107,7 @@
   font-size: 24px;
   font-weight: bold;
   margin-bottom: 20px;
-  color: #333;
+  color: #d7a636;
 }
 
 .jewelry-row {
@@ -255,7 +255,11 @@
 .total-value-box h2 {
   font-size: 28px;
   margin: 10px 0;
-  color: #222;
+  color: #d7a636;
+}
+
+.total-value-box p {
+  color: #d7a636;
 }
 
 .action-buttons {
@@ -910,6 +914,33 @@ document.addEventListener('DOMContentLoaded', function() {
   // Function to redirect back to value-calculator page with preserved data for specific jewelry item
   function redirectToValueCalculator(itemIndex) {
     try {
+      // If clicking on the first jewelry item (index 0), redirect to appraisal form
+      if (itemIndex === 0) {
+        const storedJewelryItems = sessionStorage.getItem('jewelryItems');
+        if (storedJewelryItems) {
+          const jewelryItems = JSON.parse(storedJewelryItems);
+          if (jewelryItems[0]) {
+            const selectedItem = jewelryItems[0];
+
+            // Set the current item's data as active session data for the appraisal form
+            if (selectedItem.images) {
+              sessionStorage.setItem('uploadedImages', JSON.stringify(selectedItem.images));
+            }
+            if (selectedItem.calculatedValues) {
+              sessionStorage.setItem('calculatedValues', JSON.stringify(selectedItem.calculatedValues));
+            }
+
+            // Store which item we're editing
+            sessionStorage.setItem('currentJewelryItemIndex', itemIndex.toString());
+
+            console.log(`Redirecting to appraisal-form for jewelry item ${itemIndex}`);
+          }
+        }
+
+        window.location.href = '/pages/appraisal-form';
+        return;
+      }
+
       const storedJewelryItems = sessionStorage.getItem('jewelryItems');
       if (!storedJewelryItems) {
         console.log('No jewelry items found, redirecting with current session data');
@@ -920,7 +951,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const jewelryItems = JSON.parse(storedJewelryItems);
       if (jewelryItems[itemIndex]) {
         const selectedItem = jewelryItems[itemIndex];
-        
+
         // Set the current item's data as active session data for the calculator
         if (selectedItem.images) {
           sessionStorage.setItem('uploadedImages', JSON.stringify(selectedItem.images));
@@ -928,13 +959,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (selectedItem.calculatedValues) {
           sessionStorage.setItem('calculatedValues', JSON.stringify(selectedItem.calculatedValues));
         }
-        
+
         // Store which item we're editing
         sessionStorage.setItem('currentJewelryItemIndex', itemIndex.toString());
-        
+
         console.log(`Redirecting to value-calculator for jewelry item ${itemIndex}`);
       }
-      
+
       window.location.href = '/pages/value-calculator';
     } catch (error) {
       console.error('Error redirecting to value calculator:', error);
