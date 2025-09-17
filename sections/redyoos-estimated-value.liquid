@@ -834,15 +834,15 @@ document.addEventListener('DOMContentLoaded', function() {
           // Refresh the display
           displayJewelryItems();
         } else {
-          // If no items left, redirect to value calculator to allow uploading another jewelry item
-          console.log('All jewelry items removed, redirecting to value calculator');
+          // If no items left, redirect to appraisal form to allow uploading another jewelry item
+          console.log('All jewelry items removed, redirecting to appraisal form');
 
           // Clear jewelry items but preserve any existing calculated values/images that might be useful
           sessionStorage.removeItem('jewelryItems');
           sessionStorage.removeItem('currentJewelryItemIndex');
 
-          // Redirect to value calculator
-          window.location.href = '/pages/value-calculator';
+          // Redirect to appraisal form
+          window.location.href = '/pages/appraisal-form';
           return; // Exit early since we're redirecting
         }
         
