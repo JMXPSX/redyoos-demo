@@ -134,22 +134,22 @@
           </div>
           
           <div class="example-item">
-            <img src="{{ 'Clear and High Quality.jpg' | asset_url }}" alt="Clear and high quality jewelry photo example" loading="lazy">
+            <img src="{{ 'Clear and High Quality.png' | asset_url }}" alt="Clear and high quality jewelry photo example" width="300" height="120" loading="lazy">
             <p class="example-label">Clear and High Quality</p>
           </div>
-          
+
           <div class="example-item">
-            <img src="{{ 'Single item in focus.jpg' | asset_url }}" alt="Single item in focus jewelry photo example" loading="lazy">
+            <img src="{{ 'Single item in focus.png' | asset_url }}" alt="Single item in focus jewelry photo example" width="300" height="120" loading="lazy">
             <p class="example-label">Single Item in Focus</p>
           </div>
-          
+
           <div class="example-item">
-            <img src="{{ 'Show Detail and Angles.jpg' | asset_url }}" alt="Show details and angles jewelry photo example" loading="lazy">
+            <img src="{{ 'Show Detail and Angles.png' | asset_url }}" alt="Show details and angles jewelry photo example" width="300" height="120" loading="lazy">
             <p class="example-label">Show details and angles</p>
           </div>
-          
+
           <div class="example-item">
-            <img src="{{ 'Clear Background.jpg' | asset_url }}" alt="Clear background jewelry photo example" loading="lazy">
+            <img src="{{ 'Clear Background.png' | asset_url }}" alt="Clear background jewelry photo example" width="300" height="120" loading="lazy">
             <p class="example-label">Clear Background</p>
           </div>
         </div>
@@ -164,22 +164,22 @@
           </div>
           
           <div class="example-item">
-            <img src="{{ 'Blurry.jpg' | asset_url }}" alt="Blurry, dark and low quality jewelry photo example" loading="lazy">
+            <img src="{{ 'Blurry.png' | asset_url }}" alt="Blurry, dark and low quality jewelry photo example" width="300" height="120" loading="lazy">
             <p class="example-label">Blurry, Dark and Low Quality</p>
           </div>
-          
+
           <div class="example-item">
-            <img src="{{ 'Multiple Items.jpg' | asset_url }}" alt="Multiple items jewelry photo example" loading="lazy">
+            <img src="{{ 'Multiple Items.png' | asset_url }}" alt="Multiple items jewelry photo example" width="300" height="120" loading="lazy">
             <p class="example-label">Multiple Items</p>
           </div>
-          
+
           <div class="example-item">
-            <img src="{{ 'Partial view.jpg' | asset_url }}" alt="Partial view jewelry photo example" loading="lazy">
+            <img src="{{ 'Partial view.png' | asset_url }}" alt="Partial view jewelry photo example" width="300" height="120" loading="lazy">
             <p class="example-label">Partial view</p>
           </div>
-          
+
           <div class="example-item">
-            <img src="{{ 'Noisy Background .jpg' | asset_url }}" alt="Noisy background jewelry photo example" loading="lazy">
+            <img src="{{ 'Noisy Background .png' | asset_url }}" alt="Noisy background jewelry photo example" width="300" height="120" loading="lazy">
             <p class="example-label">Noisy Background</p>
           </div>
         </div>
@@ -680,6 +680,11 @@
 .example-item {
   padding: 16px;
   border-top: 1px solid;
+  transition: background-color 0.3s ease;
+}
+
+.example-item:hover {
+  background-color: rgba(255, 255, 255, 0.7);
 }
 
 .good-examples .example-item {
@@ -697,6 +702,15 @@
   border-radius: 6px;
   margin-bottom: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.example-item img:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+  position: relative;
 }
 
 .example-label {
