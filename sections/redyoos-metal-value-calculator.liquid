@@ -1138,7 +1138,8 @@ document.addEventListener('DOMContentLoaded', function() {
       condition: conditionInput ? conditionInput.value : null,
       gemstones: gemstonesInput ? gemstonesInput.value : null,
       description: descriptionInput ? descriptionInput.value : null,
-      markings: markingsInput ? markingsInput.value : null
+      markings: markingsInput ? markingsInput.value : null,
+      metalPrices: { ...metalPrices } // Store current metal prices
     };
     
     // Store for legacy compatibility
@@ -1373,12 +1374,75 @@ document.addEventListener('DOMContentLoaded', function() {
       if (values.estimatedValue) estimatedValue.textContent = values.estimatedValue;
       if (values.afterFeesValue) afterFeesValue.textContent = values.afterFeesValue;
 
+      // Restore metal prices if available in calculated values
+      if (values.metalPrices) {
+        console.log('Restoring metal prices from calculated values:', values.metalPrices);
+
+        const goldPriceEl = document.getElementById('gold-price');
+        const silverPriceEl = document.getElementById('silver-price');
+        const platinumPriceEl = document.getElementById('platinum-price');
+
+        if (goldPriceEl && values.metalPrices.gold && values.metalPrices.gold > 0) {
+          goldPriceEl.textContent = `$${parseFloat(values.metalPrices.gold).toFixed(2)}`;
+          metalPrices.gold = parseFloat(values.metalPrices.gold);
+        }
+        if (silverPriceEl && values.metalPrices.silver && values.metalPrices.silver > 0) {
+          silverPriceEl.textContent = `$${parseFloat(values.metalPrices.silver).toFixed(2)}`;
+          metalPrices.silver = parseFloat(values.metalPrices.silver);
+        }
+        if (platinumPriceEl && values.metalPrices.platinum && values.metalPrices.platinum > 0) {
+          platinumPriceEl.textContent = `$${parseFloat(values.metalPrices.platinum).toFixed(2)}`;
+          metalPrices.platinum = parseFloat(values.metalPrices.platinum);
+        }
+
+        // Also store these in session storage for future use
+        sessionStorage.setItem('metalPrices', JSON.stringify(values.metalPrices));
+      }
+
       // Update proceed button state
       updateProceedButtonState();
 
       return true; // Return true if restoration was successful
     } catch (error) {
       console.error('Error restoring form from calculated values:', error);
+      return false;
+    }
+  }
+
+  // Function to restore metal prices from session storage
+  function restoreMetalPricesFromStorage() {
+    try {
+      const storedMetalPrices = sessionStorage.getItem('metalPrices');
+      if (!storedMetalPrices) {
+        console.log('No stored metal prices found in session storage');
+        return false;
+      }
+
+      const prices = JSON.parse(storedMetalPrices);
+      console.log('Restoring metal prices from session storage:', prices);
+
+      // Update the displayed prices
+      const goldPriceEl = document.getElementById('gold-price');
+      const silverPriceEl = document.getElementById('silver-price');
+      const platinumPriceEl = document.getElementById('platinum-price');
+
+      if (goldPriceEl && prices.gold && prices.gold > 0) {
+        goldPriceEl.textContent = `$${parseFloat(prices.gold).toFixed(2)}`;
+        metalPrices.gold = parseFloat(prices.gold);
+      }
+      if (silverPriceEl && prices.silver && prices.silver > 0) {
+        silverPriceEl.textContent = `$${parseFloat(prices.silver).toFixed(2)}`;
+        metalPrices.silver = parseFloat(prices.silver);
+      }
+      if (platinumPriceEl && prices.platinum && prices.platinum > 0) {
+        platinumPriceEl.textContent = `$${parseFloat(prices.platinum).toFixed(2)}`;
+        metalPrices.platinum = parseFloat(prices.platinum);
+      }
+
+      console.log('Successfully restored metal prices from session storage');
+      return true;
+    } catch (error) {
+      console.error('Error restoring metal prices from session storage:', error);
       return false;
     }
   }
@@ -1416,6 +1480,10 @@ document.addEventListener('DOMContentLoaded', function() {
         metalPrices.gold = parseFloat(result.metalPrices.gold);
         metalPrices.silver = parseFloat(result.metalPrices.silver);
         metalPrices.platinum = parseFloat(result.metalPrices.platinum);
+
+        // Store metal prices in session storage for future use
+        sessionStorage.setItem('metalPrices', JSON.stringify(metalPrices));
+        console.log('Stored metal prices in session storage:', metalPrices);
       }
 
       // Auto-fill metalType to metal dropdown
@@ -1493,7 +1561,10 @@ document.addEventListener('DOMContentLoaded', function() {
   if (!wasRestored) {
     autoFillFromAppraisalData();
   }
-  
+
+  // Always try to restore metal prices from session storage (regardless of form restoration)
+  restoreMetalPricesFromStorage();
+
   // Initialize proceed button state
   updateProceedButtonState();
 });
