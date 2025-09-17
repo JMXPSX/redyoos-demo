@@ -33,7 +33,7 @@
         <div class="estimated-value-amount">$0.00</div>
         <div class="estimated-value-label">Estimated Value</div>
       </div>
-      <button class="btn-analysis" id="view-analysis-btn">View Analysis</button>      
+      <button class="button button--secondary btn-analysis" id="view-analysis-btn">View Analysis</button>      
     </div>
 
     <!-- Total value section -->
@@ -46,10 +46,10 @@
     <!-- Buttons -->
     <div class="action-buttons">
       {% comment %} <button class="btn-disabled">Add another item</button> {% endcomment %}
-      <button onclick="addAnotherItem()" class="btn-recycle" id="add-another-item-btn">Add another item</button>
+      <button onclick="addAnotherItem()" class="button button--full-width button--primary btn-recycle" id="add-another-item-btn">Add another item</button>
       {% comment %} <button class="btn-disabled">Proceed to Buy Back</button> {% endcomment %}
-      <button onclick="redirectToBuyBackCart()" class="btn-recycle">Proceed to Buy Back</button>
-      <button onclick="redirectToRecycleCart()" class="btn-recycle">Proceed to Recycle</button>
+      <button onclick="redirectToBuyBackCart()" class="button button--full-width button--secondary btn-recycle">Proceed to Buy Back</button>
+      <button onclick="redirectToRecycleCart()" class="button button--full-width button--secondary btn-recycle">Proceed to Recycle</button>
     </div>
   </div>
 </section>
@@ -79,8 +79,8 @@
     <h3>Remove Jewelry Item</h3>
     <p>Are you sure you want to remove this jewelry item from your list? This action cannot be undone.</p>
     <div class="delete-modal-buttons">
-      <button id="cancel-delete-btn" class="btn-cancel">No, Keep It</button>
-      <button id="confirm-delete-btn" class="btn-confirm-delete">Yes, Remove It</button>
+      <button id="cancel-delete-btn" class="button button--primary btn-cancel">No</button>
+      <button id="confirm-delete-btn" class="button button--secondary btn-confirm-delete">Yes</button>
     </div>
   </div>
 </div>
@@ -114,10 +114,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #f0f6ff;
-  padding: 15px;
-  margin-bottom: 15px;
-  border: 1px solid #cce0ff;
+  background: #f8f9fa;
+  padding: 20px;
+  margin: 20px 0;
+  border: 1px solid #ddd;
   border-radius: 8px;
 }
 
@@ -137,7 +137,7 @@
   justify-content: center;
   position: relative;
   overflow: hidden;
-  border: 2px solid #87CEEB;
+  border: 2px solid #d7a636;
   transition: all 0.3s ease;
 }
 
@@ -184,34 +184,51 @@
 
 .btn-analysis {
   padding: 8px 14px;
+  font-size: 14px;
+  margin-right: 8px;
+}
+
+.btn-analysis.button--secondary {
+  /* Secondary button styling handled by Shopify classes */
+}
+
+.btn-analysis:not(.button) {
+  /* Fallback for buttons without Shopify classes */
   background: #4a90e2;
   color: #fff;
   border: none;
   border-radius: 6px;
   cursor: pointer;
   transition: background 0.2s;
-  font-size: 14px;
 }
 
-.btn-analysis:hover {
+.btn-analysis:not(.button):hover {
   background: #357abd;
 }
 
 .btn-delete {
+  font-size: 18px;
+  font-weight: bold;
+  line-height: 1;
+  min-width: 36px;
   padding: 8px 12px;
+}
+
+.btn-delete.button--primary {
+  /* Primary button styling handled by Shopify classes */
+}
+
+.btn-delete:not(.button) {
+  /* Fallback for buttons without Shopify classes */
   background: #dc3545;
   color: #fff;
   border: none;
   border-radius: 6px;
   cursor: pointer;
   transition: background 0.2s;
-  font-size: 18px;
-  font-weight: bold;
-  line-height: 1;
-  min-width: 36px;
 }
 
-.btn-delete:hover {
+.btn-delete:not(.button):hover {
   background: #c82333;
   transform: scale(1.05);
 }
@@ -245,6 +262,8 @@
   display: flex;
   gap: 12px;
   justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 20px;
 }
 
 .btn-disabled {
@@ -259,6 +278,19 @@
 }
 
 .btn-recycle {
+  margin: 0 6px;
+}
+
+.btn-recycle.button--primary {
+  /* Primary button styling handled by Shopify classes */
+}
+
+.btn-recycle.button--secondary {
+  /* Secondary button styling handled by Shopify classes */
+}
+
+.btn-recycle:not(.button) {
+  /* Fallback for buttons without Shopify classes */
   padding: 10px 18px;
   background: #28a745;
   color: #fff;
@@ -266,9 +298,11 @@
   border-radius: 6px;
   font-weight: bold;
   transition: background 0.2s;
+  border: none;
+  cursor: pointer;
 }
 
-.btn-recycle:hover {
+.btn-recycle:not(.button):hover {
   background: #218838;
 }
 
@@ -312,12 +346,12 @@
   .btn-analysis,
   .btn-delete {
     font-size: 12px;
-    padding: 6px 10px;
+    padding: 6px 10px !important;
     min-width: auto;
   }
-  
+
   .btn-delete {
-    font-size: 16px;
+    font-size: 16px !important;
     min-width: 32px;
   }
 }
@@ -372,7 +406,7 @@
   margin: 0 0 16px 0;
   font-size: 20px;
   font-weight: 600;
-  color: #dc3545;
+  color: #d7a636;
 }
 
 .delete-modal-content p {
@@ -390,34 +424,52 @@
 
 .btn-cancel {
   padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  margin-right: 12px;
+}
+
+.btn-cancel.button--primary {
+  /* Primary button styling handled by Shopify classes */
+}
+
+.btn-cancel:not(.button) {
+  /* Fallback for buttons without Shopify classes */
   background: #6c757d;
   color: white;
   border: none;
   border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.btn-cancel:hover {
+.btn-cancel:not(.button):hover {
   background: #5a6268;
   transform: translateY(-1px);
 }
 
 .btn-confirm-delete {
   padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  margin-left: 12px;
+}
+
+.btn-confirm-delete.button--secondary {
+  /* Secondary button styling handled by Shopify classes */
+}
+
+.btn-confirm-delete:not(.button) {
+  /* Fallback for buttons without Shopify classes */
   background: #dc3545;
   color: white;
   border: none;
   border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.btn-confirm-delete:hover {
+.btn-confirm-delete:not(.button):hover {
   background: #c82333;
   transform: translateY(-1px);
 }
@@ -561,15 +613,15 @@ function updateAddAnotherItemButton() {
   if (addButton) {
     if (jewelryItems.length >= 3) {
       addButton.disabled = true;
-      addButton.classList.remove('btn-recycle');
-      addButton.classList.add('btn-disabled');
+      addButton.classList.add('button--disabled');
+      addButton.style.opacity = '0.6';
       addButton.style.cursor = 'not-allowed';
       addButton.title = 'Maximum of 3 jewelry items allowed';
     } else {
       addButton.disabled = false;
-      addButton.classList.remove('btn-disabled');
-      addButton.classList.add('btn-recycle');
-      addButton.style.cursor = 'pointer';
+      addButton.classList.remove('button--disabled');
+      addButton.style.opacity = '';
+      addButton.style.cursor = '';
       addButton.title = 'Add another jewelry item for appraisal';
     }
   }
@@ -686,13 +738,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Create view analysis button
     const viewAnalysisBtn = document.createElement('button');
-    viewAnalysisBtn.className = 'btn-analysis';
+    viewAnalysisBtn.className = 'button button--secondary btn-analysis';
     viewAnalysisBtn.textContent = 'View Analysis';
     viewAnalysisBtn.addEventListener('click', () => redirectToValueCalculator(itemIndex));
 
     // Create delete button
     const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'btn-delete';
+    deleteBtn.className = 'button button--primary btn-delete';
     deleteBtn.textContent = '×';
     deleteBtn.title = 'Remove this jewelry item';
     deleteBtn.addEventListener('click', () => showDeleteConfirmation(itemIndex));
