@@ -959,6 +959,30 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
+  // Update custom price input based on selected metal type
+  function updateCustomPriceFromMetalSelection() {
+    const selectedMetal = metalSelect.value;
+
+    // Only update if a metal is selected and we have a valid price for it
+    if (selectedMetal && metalPrices[selectedMetal] && metalPrices[selectedMetal] > 0) {
+      customPrice.value = metalPrices[selectedMetal].toFixed(2);
+
+      // Validate the populated value to ensure proper styling
+      validateCustomPriceInput();
+
+      console.log(`Auto-populated custom price with ${selectedMetal} price: $${metalPrices[selectedMetal].toFixed(2)}`);
+    } else if (selectedMetal && metalPrices[selectedMetal] <= 0) {
+      // Clear custom price if selected metal has invalid price (API error case)
+      customPrice.value = '';
+      validateCustomPriceInput();
+      console.log(`${selectedMetal} price is 0 or invalid, cleared custom price field`);
+    } else if (!selectedMetal) {
+      // Clear custom price if no metal is selected
+      customPrice.value = '';
+      validateCustomPriceInput();
+    }
+  }
+
   // Update purity options based on selected metal
   function updatePurityOptions() {
     const selectedMetal = metalSelect.value;
@@ -1202,6 +1226,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Event listeners
   metalSelect.addEventListener('change', () => {
     updatePurityOptions();
+    updateCustomPriceFromMetalSelection();
     // Recalculate if form has values
     if (weightInput.value && weightInput.value.trim() !== '') {
       calculateValue();
@@ -1338,6 +1363,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (values.metalType) {
         metalSelect.value = values.metalType;
         updatePurityOptions(); // Update purity options based on selected metal
+        updateCustomPriceFromMetalSelection(); // Update custom price based on selected metal
       }
 
       // Restore purity (only for gold)
@@ -1440,6 +1466,10 @@ document.addEventListener('DOMContentLoaded', function() {
       }
 
       console.log('Successfully restored metal prices from session storage');
+
+      // Update custom price after metal prices are restored
+      updateCustomPriceFromMetalSelection();
+
       return true;
     } catch (error) {
       console.error('Error restoring metal prices from session storage:', error);
@@ -1484,6 +1514,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Store metal prices in session storage for future use
         sessionStorage.setItem('metalPrices', JSON.stringify(metalPrices));
         console.log('Stored metal prices in session storage:', metalPrices);
+
+        // Update custom price after metal prices are updated
+        updateCustomPriceFromMetalSelection();
       }
 
       // Auto-fill metalType to metal dropdown
@@ -1493,6 +1526,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (metalSelect.querySelector(`option[value="${metalValue}"]`)) {
           metalSelect.value = metalValue;
           updatePurityOptions(); // Update purity options based on selected metal
+          updateCustomPriceFromMetalSelection(); // Update custom price based on selected metal
         }
       }
 
