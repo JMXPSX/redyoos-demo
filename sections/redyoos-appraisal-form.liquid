@@ -1876,12 +1876,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Function to update UI based on API response
   const handleApiResponse = async (result) => {
-    if (result.success) {
+    // Check if this is a successful API response
+    const isSuccess = result.success && result.data && result.data.success !== false;
+
+    if (isSuccess) {
       // Success - show success message and redirect
       analyzeBtn.textContent = 'Analysis Complete! Redirecting...';
       analyzeBtn.classList.remove('analyzing', 'error');
       analyzeBtn.classList.add('complete');
-      
+
       // Store the appraisal result in sessionStorage for the metal calculator page
       if (result.data && result.data.result) {
         const appraisalResult = result.data.result;
@@ -1943,24 +1946,41 @@ document.addEventListener('DOMContentLoaded', () => {
       analyzeBtn.classList.remove('analyzing', 'complete');
       analyzeBtn.classList.add('error');
 
-      // Show user-friendly error message in modal
-      const errorMessages = {
-        timeout: 'Analysis timed out after 60 seconds. Your images may be too large or the service is busy. Please try again with smaller images or wait a few minutes.',
-        network: 'Unable to connect to the analysis service. Please check your internet connection and try again.',
-        cors: 'The analysis service is not configured to accept requests from this website. Please contact support.',
-        general: result.error || 'An error occurred during analysis. Please try again or contact support if the problem persists.'
-      };
+      let errorMessage;
 
-      const userMessage = errorMessages[result.type] || errorMessages.general;
+      // Check if this is an API response with success: false and a message
+      if (result.data && result.data.success === false && result.data.message) {
+        // Use the message from the API response
+        errorMessage = result.data.message;
+
+        // Clear uploaded images when API returns success: false
+        selectedFiles = [];
+        renderImages();
+
+        console.log('API returned success: false with message:', errorMessage);
+        if (result.data.flags) {
+          console.log('API flags:', result.data.flags);
+        }
+      } else {
+        // Handle network/connection errors
+        const errorMessages = {
+          timeout: 'Analysis timed out after 60 seconds. Your images may be too large or the service is busy. Please try again with smaller images or wait a few minutes.',
+          network: 'Unable to connect to the analysis service. Please check your internet connection and try again.',
+          cors: 'The analysis service is not configured to accept requests from this website. Please contact support.',
+          general: result.error || 'An error occurred during analysis. Please try again or contact support if the problem persists.'
+        };
+
+        errorMessage = errorMessages[result.type] || errorMessages.general;
+      }
 
       // Show the error modal with the appropriate message
-      showApiErrorModal(userMessage);
+      showApiErrorModal(errorMessage);
 
       setTimeout(() => {
         // Reset button after 5 seconds
         analyzeBtn.textContent = 'Analyze';
         analyzeBtn.classList.remove('analyzing', 'complete', 'error');
-        analyzeBtn.disabled = false;
+        analyzeBtn.disabled = selectedFiles.length === 0;
       }, 5000);
     }
   };
@@ -2232,16 +2252,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Close API error modal event listeners
   if (apiErrorCloseBtn) {
-    apiErrorCloseBtn.addEventListener('click', hideApiErrorModal);
-  }
-
-  if (apiErrorCloseBtnFooter) {
-    apiErrorCloseBtnFooter.addEventListener('click', hideApiErrorModal);
-  }
-
-  // Retry button - hide modal and allow user to try again
-  if (apiErrorRetryBtn) {
-    apiErrorRetryBtn.addEventListener('click', () => {
+    apiErrorCloseBtn.addEventListener('click', () => {
       hideApiErrorModal();
       // Reset analyze button state
       analyzeBtn.textContent = 'Analyze';
@@ -2250,11 +2261,41 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  if (apiErrorCloseBtnFooter) {
+    apiErrorCloseBtnFooter.addEventListener('click', () => {
+      hideApiErrorModal();
+      // Reset analyze button state
+      analyzeBtn.textContent = 'Analyze';
+      analyzeBtn.classList.remove('analyzing', 'complete', 'error');
+      analyzeBtn.disabled = selectedFiles.length === 0;
+    });
+  }
+
+  // Retry button - hide modal, clear images, and allow user to try again
+  if (apiErrorRetryBtn) {
+    apiErrorRetryBtn.addEventListener('click', () => {
+      hideApiErrorModal();
+
+      // Clear uploaded images and reset UI
+      selectedFiles = [];
+      renderImages();
+
+      // Reset analyze button state
+      analyzeBtn.textContent = 'Analyze';
+      analyzeBtn.classList.remove('analyzing', 'complete', 'error');
+      analyzeBtn.disabled = true; // Disabled until new images are uploaded
+    });
+  }
+
   // Close API error modal when clicking outside
   if (apiErrorModal) {
     apiErrorModal.addEventListener('click', (e) => {
       if (e.target === apiErrorModal) {
         hideApiErrorModal();
+        // Reset analyze button state
+        analyzeBtn.textContent = 'Analyze';
+        analyzeBtn.classList.remove('analyzing', 'complete', 'error');
+        analyzeBtn.disabled = selectedFiles.length === 0;
       }
     });
   }
@@ -2263,6 +2304,10 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && apiErrorModal && apiErrorModal.classList.contains('show')) {
       hideApiErrorModal();
+      // Reset analyze button state
+      analyzeBtn.textContent = 'Analyze';
+      analyzeBtn.classList.remove('analyzing', 'complete', 'error');
+      analyzeBtn.disabled = selectedFiles.length === 0;
     }
   });
 
