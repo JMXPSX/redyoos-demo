@@ -115,6 +115,34 @@
   </div>
 </div>
 
+<!-- API Error Modal -->
+<div id="api-error-modal" class="modal-overlay" style="display: none;" aria-hidden="true">
+  <div class="modal-container api-error-modal-container" role="dialog" aria-labelledby="api-error-title" aria-modal="true">
+    <div class="modal-header">
+      <h2 id="api-error-title" class="modal-title">Analysis Failed</h2>
+      <button type="button" class="modal-close-btn api-error-close" aria-label="Close modal">&times;</button>
+    </div>
+
+    <div class="modal-content">
+      <div class="api-error-content">
+        <div class="api-error-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+          </svg>
+        </div>
+        <p id="api-error-message" class="api-error-message">
+          An error occurred while analyzing your jewelry. Please try again or contact support if the problem persists.
+        </p>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="api-error-close-btn">Close</button>
+      <button type="button" class="api-error-retry-btn">Try Again</button>
+    </div>
+  </div>
+</div>
+
 <!-- Image Upload Guide Modal -->
 <div id="upload-guide-modal" class="modal-overlay" style="display: none;" aria-hidden="true">
   <div class="modal-container" role="dialog" aria-labelledby="modal-title" aria-modal="true">
@@ -1203,6 +1231,69 @@
   background-color: #a3005a;
 }
 
+/* API Error Modal Styles */
+.api-error-modal-container {
+  max-width: 500px;
+}
+
+.api-error-content {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.api-error-icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.api-error-icon svg {
+  width: 48px;
+  height: 48px;
+  color: #ef4444;
+}
+
+.api-error-message {
+  font-size: 1rem;
+  color: #374151;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.api-error-close-btn {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  min-width: 100px;
+}
+
+.api-error-close-btn:hover {
+  background-color: #5a6268;
+}
+
+.api-error-retry-btn {
+  background-color: #d10077;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  min-width: 120px;
+}
+
+.api-error-retry-btn:hover {
+  background-color: #a3005a;
+}
+
 /* Modal Responsive Design */
 @media (max-width: 768px) {
   .modal-overlay {
@@ -1353,7 +1444,46 @@ document.addEventListener('DOMContentLoaded', () => {
     const modal = document.getElementById('jewelry-limit-modal');
     if (modal) {
       modal.classList.remove('show');
-      
+
+      // Wait for animation to complete before hiding
+      setTimeout(() => {
+        modal.style.display = 'none';
+        modal.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+      }, 300);
+    }
+  };
+
+  // Function to show API error modal
+  const showApiErrorModal = (errorMessage) => {
+    const modal = document.getElementById('api-error-modal');
+    const messageElement = document.getElementById('api-error-message');
+
+    if (modal && messageElement) {
+      // Set the error message
+      messageElement.textContent = errorMessage || 'An error occurred while analyzing your jewelry. Please try again or contact support if the problem persists.';
+
+      modal.style.display = 'flex';
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+
+      // Add show class after a brief delay for smooth animation
+      setTimeout(() => {
+        modal.classList.add('show');
+      }, 10);
+
+      // Focus on the close button for accessibility
+      const closeBtn = modal.querySelector('.api-error-close');
+      if (closeBtn) closeBtn.focus();
+    }
+  };
+
+  // Function to hide API error modal
+  const hideApiErrorModal = () => {
+    const modal = document.getElementById('api-error-modal');
+    if (modal) {
+      modal.classList.remove('show');
+
       // Wait for animation to complete before hiding
       setTimeout(() => {
         modal.style.display = 'none';
@@ -1808,24 +1938,24 @@ document.addEventListener('DOMContentLoaded', () => {
       }, 2000);
       
     } else {
-      // Error - show error message
+      // Error - show error modal and update button
       analyzeBtn.textContent = 'Analysis Failed - Try Again';
       analyzeBtn.classList.remove('analyzing', 'complete');
       analyzeBtn.classList.add('error');
-      
-      // Show user-friendly error message
+
+      // Show user-friendly error message in modal
       const errorMessages = {
         timeout: 'Analysis timed out after 60 seconds. Your images may be too large or the service is busy. Please try again with smaller images or wait a few minutes.',
         network: 'Unable to connect to the analysis service. Please check your internet connection and try again.',
         cors: 'The analysis service is not configured to accept requests from this website. Please contact support.',
         general: result.error || 'An error occurred during analysis. Please try again or contact support if the problem persists.'
       };
-      
+
       const userMessage = errorMessages[result.type] || errorMessages.general;
-      
-      // You could show this in a toast/alert, for now we'll use console and button text
-      console.warn('User-friendly error:', userMessage);
-      
+
+      // Show the error modal with the appropriate message
+      showApiErrorModal(userMessage);
+
       setTimeout(() => {
         // Reset button after 5 seconds
         analyzeBtn.textContent = 'Analyze';
@@ -2091,6 +2221,48 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && jewelryLimitModal && jewelryLimitModal.classList.contains('show')) {
       hideJewelryLimitModal();
+    }
+  });
+
+  // API Error Modal functionality
+  const apiErrorModal = document.getElementById('api-error-modal');
+  const apiErrorCloseBtn = document.querySelector('.api-error-close');
+  const apiErrorCloseBtnFooter = document.querySelector('.api-error-close-btn');
+  const apiErrorRetryBtn = document.querySelector('.api-error-retry-btn');
+
+  // Close API error modal event listeners
+  if (apiErrorCloseBtn) {
+    apiErrorCloseBtn.addEventListener('click', hideApiErrorModal);
+  }
+
+  if (apiErrorCloseBtnFooter) {
+    apiErrorCloseBtnFooter.addEventListener('click', hideApiErrorModal);
+  }
+
+  // Retry button - hide modal and allow user to try again
+  if (apiErrorRetryBtn) {
+    apiErrorRetryBtn.addEventListener('click', () => {
+      hideApiErrorModal();
+      // Reset analyze button state
+      analyzeBtn.textContent = 'Analyze';
+      analyzeBtn.classList.remove('analyzing', 'complete', 'error');
+      analyzeBtn.disabled = selectedFiles.length === 0;
+    });
+  }
+
+  // Close API error modal when clicking outside
+  if (apiErrorModal) {
+    apiErrorModal.addEventListener('click', (e) => {
+      if (e.target === apiErrorModal) {
+        hideApiErrorModal();
+      }
+    });
+  }
+
+  // Close API error modal on Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && apiErrorModal && apiErrorModal.classList.contains('show')) {
+      hideApiErrorModal();
     }
   });
 
