@@ -63,6 +63,21 @@
         </div>
       </div>
 
+      <!-- AI Disclaimer Section -->
+      <div class="ai-disclaimer-section">
+        <div class="ai-badge">
+          <svg class="ai-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+          <span class="ai-badge-text">AI-Powered Preliminary Estimate</span>
+        </div>
+        <p class="ai-disclaimer-text">
+          <strong>Important:</strong> This service uses artificial intelligence to provide preliminary jewelry value estimates.
+          These are <strong>NOT professional appraisals</strong> and should not be relied upon for insurance, legal,
+          or financial purposes. For items of significant value or important decisions, please consult a certified jewelry appraiser.
+        </p>
+      </div>
+
       <div class="tips-section">
         <h3 class="instructions-title">Photo Tips for Better AI Appraisal:</h3>
         <ul class="upload-instructions">
@@ -73,6 +88,17 @@
           <li>Include photos of any gemstones</li>
           <li>Use a plain background for contrast</li>
         </ul>
+      </div>
+
+      <!-- Consent Checkbox Section -->
+      <div class="consent-section">
+        <label class="consent-checkbox-label">
+          <input type="checkbox" id="ai-terms-consent" class="consent-checkbox">
+          <span class="consent-text">
+            I understand this is an AI-generated preliminary estimate only and agree to the
+            <a href="#" id="terms-link" class="terms-link">Terms of Service</a>
+          </span>
+        </label>
       </div>
 
       <button type="button" class="button button--full-width button--secondary analyze-btn" disabled>Analyze</button>
@@ -137,6 +163,213 @@
 
     <div class="modal-footer">
       <button type="button" class="api-error-close-btn">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Terms of Service Modal -->
+<div id="terms-modal" class="modal-overlay" style="display: none;" aria-hidden="true">
+  <div class="modal-container terms-modal-container" role="dialog" aria-labelledby="terms-title" aria-modal="true">
+    <div class="modal-header">
+      <h2 id="terms-title" class="modal-title">AI Jewelry Appraisal - Terms of Service</h2>
+      <button type="button" class="modal-close-btn terms-close" aria-label="Close modal">&times;</button>
+    </div>
+
+    <div class="modal-content terms-content">
+      <div class="terms-introduction">
+        <p><strong>Please read these terms carefully before using our AI jewelry appraisal service.</strong></p>
+      </div>
+
+      <div class="terms-section">
+        <h3 class="terms-section-title">1. AI-GENERATED ESTIMATES</h3>
+        <p>
+          This service uses artificial intelligence to analyze jewelry images and provide preliminary value estimates.
+          These are <strong>NOT professional appraisals</strong> and should <strong>NOT</strong> be relied upon for:
+        </p>
+        <ul>
+          <li>Insurance claims or coverage decisions</li>
+          <li>Legal proceedings or disputes</li>
+          <li>Sale or purchase decisions</li>
+          <li>Estate valuations or distributions</li>
+          <li>Tax purposes or financial reporting</li>
+        </ul>
+      </div>
+
+      <div class="terms-section">
+        <h3 class="terms-section-title">2. ACCURACY LIMITATIONS</h3>
+        <p>AI analysis has inherent limitations and <strong>cannot</strong>:</p>
+        <ul>
+          <li>Verify authenticity of items or detect counterfeits reliably</li>
+          <li>Detect all materials, treatments, or modifications</li>
+          <li>Assess condition beyond visible damage in photos</li>
+          <li>Provide laboratory-grade gemstone analysis</li>
+          <li>Account for market fluctuations or regional pricing variations</li>
+        </ul>
+        <p><strong>Results depend entirely on image quality and may be inaccurate.</strong></p>
+      </div>
+
+      <div class="terms-section">
+        <h3 class="terms-section-title">3. NO WARRANTIES OR GUARANTEES</h3>
+        <p>Redyoos makes <strong>NO warranties</strong> regarding:</p>
+        <ul>
+          <li>Accuracy or reliability of estimates</li>
+          <li>Identification of materials, gemstones, or metals</li>
+          <li>Market values or pricing recommendations</li>
+          <li>Suitability for any particular purpose</li>
+          <li>Completeness or timeliness of information</li>
+        </ul>
+        <p>This service is provided <strong>"AS IS"</strong> without warranties of any kind.</p>
+      </div>
+
+      <div class="terms-section">
+        <h3 class="terms-section-title">4. LIMITATION OF LIABILITY</h3>
+        <p>By using this service, you agree that:</p>
+        <ul>
+          <li><strong>Redyoos is NOT liable</strong> for any losses, damages, or claims arising from AI estimates</li>
+          <li>You use all results entirely <strong>at your own risk</strong></li>
+          <li>You will seek professional appraisal for important decisions</li>
+          <li>Redyoos' total liability is limited to the amount you paid for this service (if any)</li>
+          <li>Redyoos is not responsible for decisions made based on AI estimates</li>
+        </ul>
+      </div>
+
+      <div class="terms-section">
+        <h3 class="terms-section-title">5. USER RESPONSIBILITIES</h3>
+        <p>You represent and warrant that:</p>
+        <ul>
+          <li>You own or are authorized to appraise the jewelry shown in images</li>
+          <li>Images are accurate, unmodified, and not manipulated to deceive the AI</li>
+          <li>You will not attempt to game, trick, exploit, or reverse-engineer the AI system</li>
+          <li>You understand this is a preliminary screening tool only</li>
+          <li>You will comply with all applicable laws when using this service</li>
+        </ul>
+      </div>
+
+      <div class="terms-section">
+        <h3 class="terms-section-title">6. PROHIBITED USES</h3>
+        <p>You may <strong>NOT</strong> use this service to:</p>
+        <ul>
+          <li>Obtain valuations for stolen, illegal, or fraudulently obtained property</li>
+          <li>Misrepresent jewelry characteristics for sale, insurance, or other purposes</li>
+          <li>Create fake or fraudulent appraisals</li>
+          <li>Systematically test, probe, or reverse-engineer the AI system</li>
+          <li>Violate any applicable laws or regulations</li>
+        </ul>
+      </div>
+
+      <div class="terms-section">
+        <h3 class="terms-section-title">7. IMAGE USAGE AND PRIVACY</h3>
+        <p>By uploading images, you grant Redyoos the right to:</p>
+        <ul>
+          <li>Use images to improve and train AI models</li>
+          <li>Store images for quality assurance and service improvement</li>
+          <li>Analyze images using third-party AI services</li>
+        </ul>
+        <p>
+          You confirm that uploaded images <strong>do not contain</strong> personal identifying information,
+          private documents, or sensitive data beyond the jewelry itself.
+        </p>
+      </div>
+
+      <div class="terms-section">
+        <h3 class="terms-section-title">8. PROFESSIONAL APPRAISAL RECOMMENDATION</h3>
+        <p><strong>IMPORTANT:</strong> For any of the following situations, you <strong>MUST</strong> obtain a professional appraisal from a certified gemologist or jewelry appraiser:</p>
+        <ul>
+          <li>Items valued at $1,000 or more</li>
+          <li>Items for insurance purposes</li>
+          <li>Items involved in legal matters, estates, or divorce proceedings</li>
+          <li>Items you intend to sell or purchase</li>
+          <li>Antique, rare, or historically significant pieces</li>
+          <li>Any situation where accurate valuation is legally or financially important</li>
+        </ul>
+      </div>
+
+      <div class="terms-section">
+        <h3 class="terms-section-title">9. SERVICE MODIFICATIONS</h3>
+        <p>
+          Redyoos reserves the right to modify, suspend, or discontinue this service at any time without notice.
+          We may also update these terms without prior notification. Continued use constitutes acceptance of modified terms.
+        </p>
+      </div>
+
+      <div class="terms-section">
+        <h3 class="terms-section-title">10. GOVERNING LAW AND DISPUTES</h3>
+        <p>
+          These terms are governed by applicable laws. Any disputes shall be resolved through binding arbitration.
+          By using this service, you waive any right to class action lawsuits.
+        </p>
+      </div>
+
+      <div class="terms-footer-note">
+        <p>
+          <strong>By clicking "I Agree and Accept" or by checking the consent box and proceeding with analysis,
+          you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.</strong>
+        </p>
+        <p class="terms-version">Last Updated: October 2025 | Version 1.0</p>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="terms-decline-btn">Decline</button>
+      <button type="button" class="terms-accept-btn">I Agree and Accept</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pre-Analysis Confirmation Modal -->
+<div id="pre-analysis-modal" class="modal-overlay" style="display: none;" aria-hidden="true">
+  <div class="modal-container pre-analysis-modal-container" role="dialog" aria-labelledby="pre-analysis-title" aria-modal="true">
+    <div class="modal-header">
+      <h2 id="pre-analysis-title" class="modal-title">
+        <svg class="warning-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+        </svg>
+        Final Confirmation Required
+      </h2>
+    </div>
+
+    <div class="modal-content pre-analysis-content">
+      <div class="confirmation-message">
+        <p class="confirmation-intro">
+          Before proceeding with AI analysis, please confirm you understand:
+        </p>
+
+        <ul class="confirmation-points">
+          <li>
+            <svg class="check-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+            </svg>
+            <strong>This is an AI estimate only</strong> - not a professional appraisal
+          </li>
+          <li>
+            <svg class="check-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+            </svg>
+            <strong>Results may be inaccurate</strong> and should not be used for insurance or legal purposes
+          </li>
+          <li>
+            <svg class="check-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+            </svg>
+            <strong>Redyoos is not liable</strong> for any decisions based on these estimates
+          </li>
+          <li>
+            <svg class="check-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+            </svg>
+            <strong>Professional appraisal recommended</strong> for important decisions or high-value items
+          </li>
+        </ul>
+
+        <p class="confirmation-warning">
+          <strong>Important:</strong> By proceeding, you acknowledge that you have read and agree to all Terms of Service.
+        </p>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="pre-analysis-cancel-btn">Cancel</button>
+      <button type="button" class="pre-analysis-proceed-btn">I Understand - Proceed with Analysis</button>
     </div>
   </div>
 </div>
@@ -1292,6 +1525,320 @@
   background-color: #a3005a;
 }
 
+/* AI Disclaimer Section Styles */
+.ai-disclaimer-section {
+  background: linear-gradient(135deg, #FFF9E6, #FFF4D4);
+  border: 2px solid #F59E0B;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 25px;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);
+}
+
+.ai-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ai-icon {
+  width: 24px;
+  height: 24px;
+  color: #D97706;
+  stroke-width: 2;
+}
+
+.ai-badge-text {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #92400E;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ai-disclaimer-text {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: #78350F;
+  margin: 0;
+}
+
+.ai-disclaimer-text strong {
+  color: #92400E;
+  font-weight: 700;
+}
+
+/* Consent Checkbox Section Styles */
+.consent-section {
+  background-color: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.consent-checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.consent-checkbox {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  margin-top: 2px;
+  cursor: pointer;
+  accent-color: rgb(var(--color-foreground));
+}
+
+.consent-text {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: #374151;
+}
+
+.terms-link {
+  color: rgb(var(--color-foreground));
+  font-weight: 600;
+  text-decoration: underline;
+  transition: color 0.2s ease;
+}
+
+.terms-link:hover {
+  color: rgba(var(--color-foreground), 0.8);
+}
+
+/* Terms of Service Modal Styles */
+.terms-modal-container {
+  max-width: 800px;
+}
+
+.terms-content {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.terms-introduction {
+  padding: 16px 20px;
+  background-color: #FEF3C7;
+  border-left: 4px solid #F59E0B;
+  border-radius: 6px;
+  margin-bottom: 20px;
+}
+
+.terms-introduction p {
+  margin: 0;
+  font-size: 1rem;
+  color: #92400E;
+}
+
+.terms-section {
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.terms-section:last-of-type {
+  border-bottom: none;
+}
+
+.terms-section-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1F2937;
+  margin: 0 0 12px 0;
+}
+
+.terms-section p {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: #4B5563;
+  margin: 0 0 12px 0;
+}
+
+.terms-section ul {
+  margin: 8px 0 12px 0;
+  padding-left: 24px;
+  list-style-type: disc;
+}
+
+.terms-section li {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: #4B5563;
+  margin-bottom: 6px;
+}
+
+.terms-footer-note {
+  background-color: #FEF2F2;
+  border: 1px solid #FEE2E2;
+  border-radius: 6px;
+  padding: 16px;
+  margin-top: 20px;
+}
+
+.terms-footer-note p {
+  margin: 0 0 8px 0;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: #991B1B;
+}
+
+.terms-footer-note p:last-child {
+  margin-bottom: 0;
+}
+
+.terms-version {
+  font-size: 0.8125rem;
+  color: #6B7280;
+  font-style: italic;
+}
+
+.terms-decline-btn {
+  background-color: #6B7280;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  min-width: 100px;
+}
+
+.terms-decline-btn:hover {
+  background-color: #4B5563;
+}
+
+.terms-accept-btn {
+  background-color: #059669;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  min-width: 180px;
+}
+
+.terms-accept-btn:hover {
+  background-color: #047857;
+}
+
+/* Pre-Analysis Confirmation Modal Styles */
+.pre-analysis-modal-container {
+  max-width: 600px;
+}
+
+.pre-analysis-content {
+  padding: 24px 30px;
+}
+
+.modal-title .warning-icon {
+  width: 28px;
+  height: 28px;
+  color: #F59E0B;
+  margin-right: 8px;
+  vertical-align: middle;
+  display: inline-block;
+}
+
+.confirmation-message {
+  text-align: left;
+}
+
+.confirmation-intro {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1F2937;
+  margin: 0 0 20px 0;
+}
+
+.confirmation-points {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 24px 0;
+}
+
+.confirmation-points li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  margin-bottom: 10px;
+  background-color: #F9FAFB;
+  border-radius: 6px;
+  border-left: 3px solid #059669;
+}
+
+.confirmation-points .check-icon {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  color: #059669;
+  margin-top: 2px;
+}
+
+.confirmation-points li strong {
+  color: #1F2937;
+}
+
+.confirmation-warning {
+  padding: 16px;
+  background-color: #FEF2F2;
+  border: 1px solid #FEE2E2;
+  border-radius: 6px;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: #991B1B;
+  margin: 0;
+}
+
+.confirmation-warning strong {
+  font-weight: 700;
+}
+
+.pre-analysis-cancel-btn {
+  background-color: #6B7280;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  min-width: 100px;
+}
+
+.pre-analysis-cancel-btn:hover {
+  background-color: #4B5563;
+}
+
+.pre-analysis-proceed-btn {
+  background-color: #059669;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  min-width: 240px;
+}
+
+.pre-analysis-proceed-btn:hover {
+  background-color: #047857;
+}
+
 /* Modal Responsive Design */
 @media (max-width: 768px) {
   .modal-overlay {
@@ -1402,6 +1949,161 @@ document.addEventListener('DOMContentLoaded', () => {
   const MAX_JEWELRY_ITEMS = 3;
   let selectedFiles = [];
 
+  // Get consent checkbox and terms modal elements
+  const consentCheckbox = document.getElementById('ai-terms-consent');
+  const termsLink = document.getElementById('terms-link');
+  const termsModal = document.getElementById('terms-modal');
+  const termsCloseBtn = document.querySelector('.terms-close');
+  const termsDeclineBtn = document.querySelector('.terms-decline-btn');
+  const termsAcceptBtn = document.querySelector('.terms-accept-btn');
+
+  // Get pre-analysis confirmation modal elements
+  const preAnalysisModal = document.getElementById('pre-analysis-modal');
+  const preAnalysisCancelBtn = document.querySelector('.pre-analysis-cancel-btn');
+  const preAnalysisProceedBtn = document.querySelector('.pre-analysis-proceed-btn');
+
+  // Function to update Analyze button state based on checkbox and files
+  const updateAnalyzeButtonState = () => {
+    const hasFiles = selectedFiles.length > 0;
+    const hasConsent = consentCheckbox && consentCheckbox.checked;
+    analyzeBtn.disabled = !(hasFiles && hasConsent);
+  };
+
+  // Function to show terms modal
+  const showTermsModal = () => {
+    if (termsModal) {
+      termsModal.style.display = 'flex';
+      termsModal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+
+      setTimeout(() => {
+        termsModal.classList.add('show');
+      }, 10);
+
+      if (termsCloseBtn) termsCloseBtn.focus();
+    }
+  };
+
+  // Function to hide terms modal
+  const hideTermsModal = () => {
+    if (termsModal) {
+      termsModal.classList.remove('show');
+
+      setTimeout(() => {
+        termsModal.style.display = 'none';
+        termsModal.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+      }, 300);
+    }
+  };
+
+  // Handle consent checkbox change
+  if (consentCheckbox) {
+    consentCheckbox.addEventListener('change', updateAnalyzeButtonState);
+  }
+
+  // Handle terms link click
+  if (termsLink) {
+    termsLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      showTermsModal();
+    });
+  }
+
+  // Handle terms modal close button
+  if (termsCloseBtn) {
+    termsCloseBtn.addEventListener('click', hideTermsModal);
+  }
+
+  // Handle terms decline button
+  if (termsDeclineBtn) {
+    termsDeclineBtn.addEventListener('click', () => {
+      hideTermsModal();
+      // Uncheck the consent checkbox
+      if (consentCheckbox) {
+        consentCheckbox.checked = false;
+        updateAnalyzeButtonState();
+      }
+    });
+  }
+
+  // Handle terms accept button
+  if (termsAcceptBtn) {
+    termsAcceptBtn.addEventListener('click', () => {
+      hideTermsModal();
+      // Check the consent checkbox
+      if (consentCheckbox) {
+        consentCheckbox.checked = true;
+        updateAnalyzeButtonState();
+      }
+    });
+  }
+
+  // Close terms modal when clicking outside
+  if (termsModal) {
+    termsModal.addEventListener('click', (e) => {
+      if (e.target === termsModal) {
+        hideTermsModal();
+      }
+    });
+  }
+
+  // Close terms modal on Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && termsModal && termsModal.classList.contains('show')) {
+      hideTermsModal();
+    }
+  });
+
+  // Function to show pre-analysis confirmation modal
+  const showPreAnalysisModal = () => {
+    if (preAnalysisModal) {
+      preAnalysisModal.style.display = 'flex';
+      preAnalysisModal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+
+      setTimeout(() => {
+        preAnalysisModal.classList.add('show');
+      }, 10);
+
+      if (preAnalysisCancelBtn) preAnalysisCancelBtn.focus();
+    }
+  };
+
+  // Function to hide pre-analysis confirmation modal
+  const hidePreAnalysisModal = () => {
+    if (preAnalysisModal) {
+      preAnalysisModal.classList.remove('show');
+
+      setTimeout(() => {
+        preAnalysisModal.style.display = 'none';
+        preAnalysisModal.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+      }, 300);
+    }
+  };
+
+  // Handle pre-analysis cancel button
+  if (preAnalysisCancelBtn) {
+    preAnalysisCancelBtn.addEventListener('click', hidePreAnalysisModal);
+  }
+
+  // Close pre-analysis modal when clicking outside
+  if (preAnalysisModal) {
+    preAnalysisModal.addEventListener('click', (e) => {
+      if (e.target === preAnalysisModal) {
+        hidePreAnalysisModal();
+      }
+    });
+  }
+
+  // Close pre-analysis modal on Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && preAnalysisModal && preAnalysisModal.classList.contains('show')) {
+      hidePreAnalysisModal();
+    }
+  });
+
   // Function to get current jewelry items count from sessionStorage
   const getJewelryItemsCount = () => {
     try {
@@ -1498,7 +2200,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const fileCount = selectedFiles.length;
     imageCountSpan.textContent = `Selected Images (${fileCount}/${MAX_FILES})`;
     clearAllBtn.style.display = fileCount > 0 ? 'block' : 'none';
-    analyzeBtn.disabled = fileCount === 0;
+
+    // Update analyze button state based on both files and consent
+    updateAnalyzeButtonState();
 
     // Update upload area appearance
     if (fileCount > 0) {
@@ -1978,7 +2682,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Reset button after 5 seconds
         analyzeBtn.textContent = 'Analyze';
         analyzeBtn.classList.remove('analyzing', 'complete', 'error');
-        analyzeBtn.disabled = selectedFiles.length === 0;
+        updateAnalyzeButtonState();
       }, 5000);
     }
   };
@@ -2055,8 +2759,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // Handle Analyze button - now calls AWS endpoint
-  analyzeBtn.addEventListener('click', async () => {
+  // Function to perform the actual analysis (called after confirmation)
+  const performAnalysis = async () => {
     if (selectedFiles.length > 0) {
       // Show loading overlay
       showAnalysisLoadingOverlay();
@@ -2080,9 +2784,28 @@ document.addEventListener('DOMContentLoaded', () => {
       // Clear progress animation and hide loading overlay
       clearInterval(progressInterval);
       hideAnalysisLoadingOverlay();
-      
+
       // Handle the response
       handleApiResponse(result);
+    }
+  };
+
+  // Handle pre-analysis proceed button - this actually starts the analysis
+  if (preAnalysisProceedBtn) {
+    preAnalysisProceedBtn.addEventListener('click', async () => {
+      // Hide the confirmation modal
+      hidePreAnalysisModal();
+
+      // Perform the actual analysis
+      await performAnalysis();
+    });
+  }
+
+  // Handle Analyze button - shows pre-analysis confirmation modal first
+  analyzeBtn.addEventListener('click', () => {
+    if (selectedFiles.length > 0 && consentCheckbox && consentCheckbox.checked) {
+      // Show pre-analysis confirmation modal
+      showPreAnalysisModal();
     }
   });
 
@@ -2255,7 +2978,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Reset analyze button state
       analyzeBtn.textContent = 'Analyze';
       analyzeBtn.classList.remove('analyzing', 'complete', 'error');
-      analyzeBtn.disabled = selectedFiles.length === 0;
+      updateAnalyzeButtonState();
     });
   }
 
@@ -2265,7 +2988,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Reset analyze button state
       analyzeBtn.textContent = 'Analyze';
       analyzeBtn.classList.remove('analyzing', 'complete', 'error');
-      analyzeBtn.disabled = selectedFiles.length === 0;
+      updateAnalyzeButtonState();
     });
   }
 
@@ -2281,7 +3004,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Reset analyze button state
       analyzeBtn.textContent = 'Analyze';
       analyzeBtn.classList.remove('analyzing', 'complete', 'error');
-      analyzeBtn.disabled = true; // Disabled until new images are uploaded
+      updateAnalyzeButtonState();
     });
   }
 
@@ -2293,7 +3016,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Reset analyze button state
         analyzeBtn.textContent = 'Analyze';
         analyzeBtn.classList.remove('analyzing', 'complete', 'error');
-        analyzeBtn.disabled = selectedFiles.length === 0;
+        updateAnalyzeButtonState();
       }
     });
   }
@@ -2305,7 +3028,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Reset analyze button state
       analyzeBtn.textContent = 'Analyze';
       analyzeBtn.classList.remove('analyzing', 'complete', 'error');
-      analyzeBtn.disabled = selectedFiles.length === 0;
+      updateAnalyzeButtonState();
     }
   });
 
